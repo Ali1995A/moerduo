@@ -41,7 +41,8 @@ pub fn init_database(db_path: &Path) -> Result<Connection> {
             audio_id INTEGER NOT NULL,
             sort_order INTEGER NOT NULL,
             FOREIGN KEY (playlist_id) REFERENCES playlists(id) ON DELETE CASCADE,
-            FOREIGN KEY (audio_id) REFERENCES audio_files(id) ON DELETE CASCADE
+            FOREIGN KEY (audio_id) REFERENCES audio_files(id) ON DELETE CASCADE,
+            UNIQUE(playlist_id, audio_id)
         )",
         [],
     )?;
@@ -119,6 +120,64 @@ pub fn init_database(db_path: &Path) -> Result<Connection> {
         )",
         [],
     )?;
+
+    // 数据库迁移：为 playlist_items 添加 UNIQUE 约束
+    // 检查是否存在 UNIQUE 约束
+    let has_unique_constraint: Result<i64, _> = conn.query_row(
+        "SELECT COUNT(*) FROM sqlite_master WHERE type='index'
+         AND tbl_name='playlist_items'
+         AND sql LIKE '%UNIQUE%playlist_id%audio_id%'",
+        [],
+        |row| row.get(0),
+    );
+
+    if let Ok(count) = has_unique_constraint {
+        if count == 0 {
+            // 先删除重复的记录，保留每组中 id 最小的记录
+            conn.execute(
+                "DELETE FROM playlist_items
+                 WHERE id NOT IN (
+                     SELECT MIN(id)
+                     FROM playlist_items
+                     GROUP BY playlist_id, audio_id
+                 )",
+                [],
+            )?;
+
+            // 为已存在的表添加 UNIQUE 约束
+            // SQLite 不支持直接 ALTER TABLE ADD CONSTRAINT，需要重建表
+            conn.execute("BEGIN TRANSACTION", [])?;
+
+            // 创建新表
+            conn.execute(
+                "CREATE TABLE playlist_items_new (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    playlist_id INTEGER NOT NULL,
+                    audio_id INTEGER NOT NULL,
+                    sort_order INTEGER NOT NULL,
+                    FOREIGN KEY (playlist_id) REFERENCES playlists(id) ON DELETE CASCADE,
+                    FOREIGN KEY (audio_id) REFERENCES audio_files(id) ON DELETE CASCADE,
+                    UNIQUE(playlist_id, audio_id)
+                )",
+                [],
+            )?;
+
+            // 复制数据
+            conn.execute(
+                "INSERT INTO playlist_items_new (id, playlist_id, audio_id, sort_order)
+                 SELECT id, playlist_id, audio_id, sort_order FROM playlist_items",
+                [],
+            )?;
+
+            // 删除旧表
+            conn.execute("DROP TABLE playlist_items", [])?;
+
+            // 重命名新表
+            conn.execute("ALTER TABLE playlist_items_new RENAME TO playlist_items", [])?;
+
+            conn.execute("COMMIT", [])?;
+        }
+    }
 
     Ok(conn)
 }

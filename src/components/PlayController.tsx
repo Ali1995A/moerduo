@@ -11,6 +11,7 @@ interface PlaybackState {
   playlist_queue: number[]
   current_index: number
   is_auto_play: boolean
+  is_scheduled: boolean  // 是否为定时任务触发的播放
 }
 
 export default function PlayController() {
@@ -120,7 +121,7 @@ export default function PlayController() {
             <span className="font-medium text-gray-800">
               {playbackState.current_audio_name || '未知音频'}
             </span>
-            {playbackState.is_auto_play && (
+            {playbackState.is_scheduled && (
               <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs">
                 定时播放中
               </span>

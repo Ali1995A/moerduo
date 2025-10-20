@@ -20,13 +20,14 @@ impl Scheduler {
         let player = self.player.clone();
 
         tokio::spawn(async move {
-            let mut interval = interval(Duration::from_secs(10)); // 每10秒检查一次，避免漏掉任务
+            println!("🚀 [Scheduler] 定时任务调度器已启动");
+            let mut interval = interval(Duration::from_secs(30)); // 每30秒检查一次
 
             loop {
                 interval.tick().await;
 
                 if let Err(e) = Self::check_and_execute_tasks(db.clone(), player.clone()).await {
-                    eprintln!("检查任务失败: {}", e);
+                    eprintln!("❌ [Scheduler] 检查任务失败: {}", e);
                 }
             }
         });
@@ -40,8 +41,6 @@ impl Scheduler {
         let current_hour = now.hour() as i64;
         let current_minute = now.minute() as i64;
         let current_weekday = now.weekday().number_from_sunday() as i64; // 0=周日, 1-6=周一到周六
-
-        println!("[Scheduler] 检查时间: {}:{:02}, 星期: {}", current_hour, current_minute, current_weekday);
 
         // 查询所有启用的任务
         let tasks = {
@@ -79,22 +78,20 @@ impl Scheduler {
             tasks
         };
 
+        println!("🔍 [Scheduler] 检查时间: {}:{:02}, 星期: {}, 启用任务数: {}",
+                 current_hour, current_minute, current_weekday, tasks.len());
+
         for (task_id, name, hour, minute, repeat_mode, custom_days, playlist_id, volume, fade_in_duration, duration_minutes, _priority) in tasks {
-            // 检查时间是否匹配（允许当前分钟或前一分钟内执行，避免因检查间隔导致错过）
-            let time_matches = if current_minute == 0 {
-                // 如果当前是整点，需要检查上一小时的59分
-                (hour == current_hour && minute == 0) ||
-                (hour == if current_hour == 0 { 23 } else { current_hour - 1 } && minute == 59)
-            } else {
-                (hour == current_hour && minute == current_minute) ||
-                (hour == current_hour && minute == current_minute - 1)
-            };
+            // 检查时间是否匹配（允许在设定时间前后2分钟内执行，避免因检查间隔导致错过）
+            let time_diff = (current_hour * 60 + current_minute) - (hour * 60 + minute);
+            let time_matches = time_diff >= 0 && time_diff <= 2; // 在设定时间到设定时间后2分钟内
 
             if !time_matches {
                 continue;
             }
 
-            println!("[Scheduler] 发现匹配任务: {} ({}:{:02})", name, hour, minute);
+            println!("⏰ [Scheduler] 发现匹配任务: {} (设定时间: {}:{:02}, 当前时间: {}:{:02})",
+                     name, hour, minute, current_hour, current_minute);
 
             // 检查是否应该在今天执行
             let should_execute = match repeat_mode.as_str() {
@@ -128,7 +125,7 @@ impl Scheduler {
             };
 
             if !should_execute {
-                println!("[Scheduler] 任务 {} 今天不应该执行 (repeat_mode: {})", name, repeat_mode);
+                println!("⏭️ [Scheduler] 任务 {} 今天不应该执行 (repeat_mode: {}, weekday: {})", name, repeat_mode, current_weekday);
                 continue;
             }
 
@@ -148,7 +145,7 @@ impl Scheduler {
             };
 
             if already_executed_today {
-                println!("[Scheduler] 任务 {} 今天已经执行过了", name);
+                println!("⏭️ [Scheduler] 任务 {} 今天已经执行过了，跳过", name);
                 continue;
             }
 
@@ -176,7 +173,7 @@ impl Scheduler {
             )
             .await
             {
-                eprintln!("播放失败: {}", e);
+                eprintln!("❌ [Scheduler] 播放失败: {}", e);
 
                 // 记录失败
                 let conn = db.lock().await;
@@ -187,6 +184,8 @@ impl Scheduler {
                      )",
                     [task_id],
                 );
+            } else {
+                println!("✅ [Scheduler] 任务 {} 执行完成", name);
             }
         }
 
@@ -233,6 +232,7 @@ impl Scheduler {
         let audio_ids: Vec<i64> = audio_files.iter().map(|(id, _, _, _)| *id).collect();
         let mut player_guard = player.lock().await;
         player_guard.set_playlist_queue(audio_ids, true); // 标记为自动播放
+        player_guard.set_scheduled(true); // 标记为定时任务触发的播放
         drop(player_guard);
 
         // 记录开始时间（用于时长控制）

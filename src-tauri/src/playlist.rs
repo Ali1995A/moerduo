@@ -133,6 +133,19 @@ pub async fn add_to_playlist(
 ) -> Result<(), String> {
     let conn = conn.lock().await;
 
+    // 检查音频是否已存在于播放列表中
+    let exists: bool = conn
+        .query_row(
+            "SELECT EXISTS(SELECT 1 FROM playlist_items WHERE playlist_id = ?1 AND audio_id = ?2)",
+            (playlist_id, audio_id),
+            |row| row.get(0),
+        )
+        .map_err(|e| e.to_string())?;
+
+    if exists {
+        return Err("该音频已存在于播放列表中".to_string());
+    }
+
     // 获取当前最大排序值
     let max_order: i64 = conn
         .query_row(
@@ -142,23 +155,61 @@ pub async fn add_to_playlist(
         )
         .map_err(|e| e.to_string())?;
 
-    conn.execute(
+    // 尝试插入，如果违反 UNIQUE 约束也会被捕获
+    match conn.execute(
         "INSERT INTO playlist_items (playlist_id, audio_id, sort_order) VALUES (?1, ?2, ?3)",
         (playlist_id, audio_id, max_order + 1),
-    )
-    .map_err(|e| e.to_string())?;
-
-    Ok(())
+    ) {
+        Ok(_) => Ok(()),
+        Err(rusqlite::Error::SqliteFailure(err, _)) => {
+            // 检查是否是 UNIQUE 约束冲突 (SQLITE_CONSTRAINT_UNIQUE)
+            if err.code == rusqlite::ErrorCode::ConstraintViolation {
+                Err("该音频已存在于播放列表中".to_string())
+            } else {
+                Err(format!("添加失败: {}", err))
+            }
+        }
+        Err(e) => Err(format!("添加失败: {}", e)),
+    }
 }
 
 #[tauri::command]
 pub async fn remove_from_playlist(
-    id: i64,
+    item_id: i64,
     conn: State<'_, Arc<Mutex<Connection>>>,
 ) -> Result<(), String> {
     let conn = conn.lock().await;
-    conn.execute("DELETE FROM playlist_items WHERE id = ?1", [id])
-        .map_err(|e| e.to_string())?;
+
+    // 首先检查项是否存在并获取其信息
+    let playlist_info: Result<(i64, i64), _> = conn.query_row(
+        "SELECT playlist_id, sort_order FROM playlist_items WHERE id = ?1",
+        [item_id],
+        |row| Ok((row.get(0)?, row.get(1)?)),
+    );
+
+    let (playlist_id, removed_sort_order) = match playlist_info {
+        Ok(info) => info,
+        Err(_) => return Err("要移除的项不存在".to_string()),
+    };
+
+    // 删除项
+    let affected_rows = conn
+        .execute("DELETE FROM playlist_items WHERE id = ?1", [item_id])
+        .map_err(|e| format!("删除失败: {}", e))?;
+
+    if affected_rows == 0 {
+        return Err("要移除的项不存在".to_string());
+    }
+
+    // 重新调整后续项的排序值
+    conn.execute(
+        "UPDATE playlist_items
+         SET sort_order = sort_order - 1
+         WHERE playlist_id = ?1 AND sort_order > ?2",
+        (playlist_id, removed_sort_order),
+    )
+    .map_err(|e| format!("调整排序失败: {}", e))?;
+
     Ok(())
 }
 
@@ -181,4 +232,162 @@ pub async fn check_playlist_tasks(
         .map_err(|e| e.to_string())?;
 
     Ok(task_names)
+}
+
+#[tauri::command]
+pub async fn reorder_playlist_items(
+    item_id: i64,
+    new_sort_order: i64,
+    conn: State<'_, Arc<Mutex<Connection>>>,
+) -> Result<(), String> {
+    let conn = conn.lock().await;
+
+    // 获取当前项的信息
+    let (playlist_id, old_sort_order): (i64, i64) = conn
+        .query_row(
+            "SELECT playlist_id, sort_order FROM playlist_items WHERE id = ?1",
+            [item_id],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .map_err(|e| e.to_string())?;
+
+    // 如果位置没有变化，直接返回
+    if old_sort_order == new_sort_order {
+        return Ok(());
+    }
+
+    // 更新其他项的排序
+    if new_sort_order < old_sort_order {
+        // 向前移动：将中间的项向后移
+        conn.execute(
+            "UPDATE playlist_items
+             SET sort_order = sort_order + 1
+             WHERE playlist_id = ?1 AND sort_order >= ?2 AND sort_order < ?3",
+            (playlist_id, new_sort_order, old_sort_order),
+        )
+        .map_err(|e| e.to_string())?;
+    } else {
+        // 向后移动：将中间的项向前移
+        conn.execute(
+            "UPDATE playlist_items
+             SET sort_order = sort_order - 1
+             WHERE playlist_id = ?1 AND sort_order > ?2 AND sort_order <= ?3",
+            (playlist_id, old_sort_order, new_sort_order),
+        )
+        .map_err(|e| e.to_string())?;
+    }
+
+    // 更新目标项的排序
+    conn.execute(
+        "UPDATE playlist_items SET sort_order = ?1 WHERE id = ?2",
+        (new_sort_order, item_id),
+    )
+    .map_err(|e| e.to_string())?;
+
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn move_playlist_item_up(
+    item_id: i64,
+    conn: State<'_, Arc<Mutex<Connection>>>,
+) -> Result<(), String> {
+    let conn = conn.lock().await;
+
+    // 获取当前项的信息
+    let (playlist_id, current_sort_order): (i64, i64) = conn
+        .query_row(
+            "SELECT playlist_id, sort_order FROM playlist_items WHERE id = ?1",
+            [item_id],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .map_err(|e| e.to_string())?;
+
+    // 如果已经是第一项，无法上移
+    if current_sort_order == 0 {
+        return Err("已经是第一项，无法上移".to_string());
+    }
+
+    // 找到上一项
+    let (prev_item_id, prev_sort_order): (i64, i64) = conn
+        .query_row(
+            "SELECT id, sort_order FROM playlist_items
+             WHERE playlist_id = ?1 AND sort_order < ?2
+             ORDER BY sort_order DESC LIMIT 1",
+            [playlist_id, current_sort_order],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .map_err(|e| e.to_string())?;
+
+    // 交换两项的排序
+    conn.execute(
+        "UPDATE playlist_items SET sort_order = ?1 WHERE id = ?2",
+        (prev_sort_order, item_id),
+    )
+    .map_err(|e| e.to_string())?;
+
+    conn.execute(
+        "UPDATE playlist_items SET sort_order = ?1 WHERE id = ?2",
+        (current_sort_order, prev_item_id),
+    )
+    .map_err(|e| e.to_string())?;
+
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn move_playlist_item_down(
+    item_id: i64,
+    conn: State<'_, Arc<Mutex<Connection>>>,
+) -> Result<(), String> {
+    let conn = conn.lock().await;
+
+    // 获取当前项的信息
+    let (playlist_id, current_sort_order): (i64, i64) = conn
+        .query_row(
+            "SELECT playlist_id, sort_order FROM playlist_items WHERE id = ?1",
+            [item_id],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .map_err(|e| e.to_string())?;
+
+    // 计算当前播放列表的总项数
+    let total_items: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM playlist_items WHERE playlist_id = ?1",
+            [playlist_id],
+            |row| row.get(0),
+        )
+        .map_err(|e| e.to_string())?;
+
+    // 如果已经是最后一项，无法下移
+    if current_sort_order == total_items - 1 {
+        return Err("已经是最后一项，无法下移".to_string());
+    }
+
+    // 找到下一项
+    let (next_item_id, next_sort_order): (i64, i64) = conn
+        .query_row(
+            "SELECT id, sort_order FROM playlist_items
+             WHERE playlist_id = ?1 AND sort_order > ?2
+             ORDER BY sort_order ASC LIMIT 1",
+            [playlist_id, current_sort_order],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .map_err(|e| e.to_string())?;
+
+    // 交换两项的排序
+    conn.execute(
+        "UPDATE playlist_items SET sort_order = ?1 WHERE id = ?2",
+        (next_sort_order, item_id),
+    )
+    .map_err(|e| e.to_string())?;
+
+    conn.execute(
+        "UPDATE playlist_items SET sort_order = ?1 WHERE id = ?2",
+        (current_sort_order, next_item_id),
+    )
+    .map_err(|e| e.to_string())?;
+
+    Ok(())
 }

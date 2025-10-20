@@ -17,6 +17,7 @@ pub struct PlaybackState {
     pub playlist_queue: Vec<i64>,
     pub current_index: usize,
     pub is_auto_play: bool,
+    pub is_scheduled: bool,  // 是否为定时任务触发的播放
 }
 
 pub struct AudioPlayer {
@@ -30,6 +31,7 @@ pub struct AudioPlayer {
     volume: f32,
     speed: f32,
     is_auto_play: bool,
+    is_scheduled: bool,  // 是否为定时任务触发的播放
 }
 
 // 手动实现Send，因为我们确保只在单线程中访问
@@ -49,6 +51,7 @@ impl AudioPlayer {
             volume: 0.5,
             speed: 1.0,
             is_auto_play: false,
+            is_scheduled: false,
         }
     }
 
@@ -101,6 +104,12 @@ impl AudioPlayer {
         self.playlist_queue = queue;
         self.current_index = 0;
         self.is_auto_play = is_auto_play;
+        // 注意：这里不设置 is_scheduled，因为这个函数可能被多处调用
+        // is_scheduled 应该在 play_playlist 中显式设置
+    }
+
+    pub fn set_scheduled(&mut self, is_scheduled: bool) {
+        self.is_scheduled = is_scheduled;
     }
 
     pub fn play_next(&mut self) -> Option<i64> {
@@ -110,6 +119,10 @@ impl AudioPlayer {
 
         if self.current_index + 1 < self.playlist_queue.len() {
             self.current_index += 1;
+            Some(self.playlist_queue[self.current_index])
+        } else if self.is_auto_play && !self.playlist_queue.is_empty() {
+            // 如果启用自动播放且播放列表不为空，循环到第一首
+            self.current_index = 0;
             Some(self.playlist_queue[self.current_index])
         } else {
             None
@@ -152,6 +165,7 @@ impl AudioPlayer {
         self.playlist_queue.clear();
         self.current_index = 0;
         self.is_auto_play = false;
+        self.is_scheduled = false;  // 停止时也清除定时标志
     }
 
     pub fn set_volume(&mut self, volume: f32) {
@@ -182,6 +196,7 @@ impl AudioPlayer {
             playlist_queue: self.playlist_queue.clone(),
             current_index: self.current_index,
             is_auto_play: self.is_auto_play,
+            is_scheduled: self.is_scheduled,
         }
     }
 }
@@ -359,6 +374,17 @@ pub async fn play_playlist(
     player: State<'_, Arc<Mutex<AudioPlayer>>>,
     conn: State<'_, Arc<Mutex<Connection>>>,
 ) -> Result<(), String> {
+    // 获取播放列表的播放模式
+    let play_mode: String = {
+        let conn = conn.lock().await;
+        conn.query_row(
+            "SELECT play_mode FROM playlists WHERE id = ?1",
+            [playlist_id],
+            |row| row.get(0),
+        )
+        .map_err(|e| e.to_string())?
+    };
+
     // 获取播放列表中的所有音频 ID
     let audio_ids: Vec<i64> = {
         let conn = conn.lock().await;
@@ -383,11 +409,44 @@ pub async fn play_playlist(
         return Err("播放列表为空".to_string());
     }
 
+    // 根据播放模式调整播放队列
+    let final_audio_ids = match play_mode.as_str() {
+        "random" => {
+            // 随机播放：打乱顺序
+            let mut shuffled = audio_ids.clone();
+            use rand::seq::SliceRandom;
+            let mut rng = rand::thread_rng();
+            shuffled.shuffle(&mut rng);
+            shuffled
+        }
+        "single" => {
+            // 单曲循环：只重复第一首
+            vec![audio_ids[0]]
+        }
+        "loop" | "sequential" => {
+            // 列表循环或顺序播放：保持原顺序
+            audio_ids.clone()
+        }
+        _ => {
+            // 默认顺序播放
+            audio_ids.clone()
+        }
+    };
+
     let mut player = player.lock().await;
-    player.set_playlist_queue(audio_ids.clone(), is_auto_play);
+
+    // 对于循环模式，设置自动播放
+    let final_auto_play = match play_mode.as_str() {
+        "loop" | "single" => true,  // 循环模式总是启用自动播放
+        _ => is_auto_play
+    };
+
+    player.set_playlist_queue(final_audio_ids.clone(), final_auto_play);
+    // 手动播放不设置 is_scheduled（只有调度器触发的才设置）
+    player.set_scheduled(false);
 
     // 播放第一首
-    let first_audio_id = audio_ids[0];
+    let first_audio_id = final_audio_ids[0];
     let (file_path, audio_name): (String, String) = {
         let conn = conn.lock().await;
         conn.query_row(

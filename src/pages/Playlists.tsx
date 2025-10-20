@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Plus, Trash2, List as ListIcon, Shuffle, Repeat, Repeat1, Music, Play, PlayCircle, SkipBack, SkipForward, Pause } from 'lucide-react'
+import { Plus, Trash2, List as ListIcon, Shuffle, Repeat, Repeat1, Music, Play, PlayCircle, SkipBack, SkipForward, Pause, ChevronUp, ChevronDown } from 'lucide-react'
 import { invoke } from '@tauri-apps/api/tauri'
 import { usePlayer } from '../contexts/PlayerContext'
 
@@ -152,12 +152,38 @@ export default function Playlists() {
     if (!selectedPlaylist || selectedAudios.size === 0) return
 
     try {
+      let addedCount = 0
+      let skippedCount = 0
+      const errors: string[] = []
+
       for (const audioId of selectedAudios) {
-        await invoke('add_to_playlist', { playlistId: selectedPlaylist, audioId })
+        try {
+          await invoke('add_to_playlist', { playlistId: selectedPlaylist, audioId })
+          addedCount++
+        } catch (error) {
+          const errorMsg = String(error)
+          if (errorMsg.includes('已存在于播放列表中')) {
+            skippedCount++
+          } else {
+            errors.push(errorMsg)
+          }
+        }
       }
+
       setShowAddAudioDialog(false)
       setSelectedAudios(new Set())
       loadPlaylistItems(selectedPlaylist)
+
+      // 显示结果提示
+      if (errors.length > 0) {
+        alert(`添加完成，但有错误：\n${errors.join('\n')}`)
+      } else if (skippedCount > 0 && addedCount > 0) {
+        alert(`成功添加 ${addedCount} 个音频，跳过 ${skippedCount} 个已存在的音频`)
+      } else if (skippedCount > 0) {
+        alert(`所有选中的音频已存在于播放列表中`)
+      } else if (addedCount > 0) {
+        alert(`成功添加 ${addedCount} 个音频`)
+      }
     } catch (error) {
       console.error('添加音频到播放列表失败:', error)
       alert('添加失败: ' + error)
@@ -172,6 +198,31 @@ export default function Playlists() {
       loadPlaylistItems(selectedPlaylist)
     } catch (error) {
       console.error('从播放列表移除失败:', error)
+      alert('移除失败: ' + error)
+    }
+  }
+
+  const handleMoveItemUp = async (itemId: number, index: number) => {
+    if (index === 0) return // 已经是第一项，无法上移
+
+    try {
+      await invoke('move_playlist_item_up', { itemId })
+      loadPlaylistItems(selectedPlaylist!)
+    } catch (error) {
+      console.error('上移失败:', error)
+      alert('上移失败: ' + error)
+    }
+  }
+
+  const handleMoveItemDown = async (itemId: number, index: number) => {
+    if (!selectedPlaylist || index === playlistItems.length - 1) return // 已经是最后一项，无法下移
+
+    try {
+      await invoke('move_playlist_item_down', { itemId })
+      loadPlaylistItems(selectedPlaylist)
+    } catch (error) {
+      console.error('下移失败:', error)
+      alert('下移失败: ' + error)
     }
   }
 
@@ -180,10 +231,10 @@ export default function Playlists() {
 
     try {
       await invoke('play_playlist', { playlistId: selectedPlaylist, isAutoPlay: true })
-      alert('开始播放列表！')
+      // 播放成功后不需要提示，用户可以从播放控制器看到状态
     } catch (error) {
       console.error('播放列表失败:', error)
-      alert('播放列表失败: ' + error)
+      alert('播放失败: ' + error)
     }
   }
 
@@ -361,7 +412,7 @@ export default function Playlists() {
                       <th className="pb-3 w-16">#</th>
                       <th className="pb-3">音频名称</th>
                       <th className="pb-3 w-24">时长</th>
-                      <th className="pb-3 w-40">操作</th>
+                      <th className="pb-3 w-48">操作</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -370,7 +421,7 @@ export default function Playlists() {
                       return (
                         <tr
                           key={item.id}
-                          className={`border-b border-gray-100 transition-colors ${
+                          className={`border-b border-gray-100 transition-all ${
                             isCurrentlyPlaying
                               ? 'bg-blue-50 hover:bg-blue-100'
                               : 'hover:bg-gray-50'
@@ -394,6 +445,28 @@ export default function Playlists() {
                           <td className="py-3 text-gray-600">{formatDuration(item.duration)}</td>
                           <td className="py-3">
                             <div className="flex gap-1">
+                              {/* 上移按钮 */}
+                              <button
+                                onClick={() => handleMoveItemUp(item.id, index)}
+                                disabled={index === 0}
+                                className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                                title="上移"
+                              >
+                                <ChevronUp size={16} />
+                              </button>
+
+                              {/* 下移按钮 */}
+                              <button
+                                onClick={() => handleMoveItemDown(item.id, index)}
+                                disabled={index === playlistItems.length - 1}
+                                className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                                title="下移"
+                              >
+                                <ChevronDown size={16} />
+                              </button>
+
+                              <div className="w-px bg-gray-300 mx-1" />
+
                               {currentAudio && currentAudio.id === item.audio_id && isPlaying ? (
                                 <>
                                   <button
@@ -433,6 +506,7 @@ export default function Playlists() {
                                   <Play size={16} />
                                 </button>
                               )}
+
                               <button
                                 onClick={() => handleRemoveFromPlaylist(item.id)}
                                 className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"

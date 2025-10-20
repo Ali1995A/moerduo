@@ -10,6 +10,7 @@ interface PlaybackState {
   playlist_queue: number[]
   current_index: number
   is_auto_play: boolean
+  is_scheduled: boolean
 }
 
 interface PlayerContextType {
@@ -35,12 +36,33 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const [currentAudio, setCurrentAudio] = useState<{ id: number; name: string } | null>(null)
   const [audioList, setAudioList] = useState<Array<{id: number, name: string}>>([])
   const [currentIndex, setCurrentIndex] = useState(-1)
+  const [prevPlayingState, setPrevPlayingState] = useState(false)
 
   // 定期同步播放状态
   useEffect(() => {
     const syncState = async () => {
       try {
         const state = await invoke<PlaybackState>('get_playback_state')
+
+        // 检测播放完成：之前在播放，现在停止了，且启用了自动播放
+        const wasPlaying = prevPlayingState
+        const nowPlaying = state.is_playing
+        const playbackFinished = wasPlaying && !nowPlaying && state.is_auto_play &&
+                                  state.playlist_queue.length > 0
+
+        if (playbackFinished) {
+          console.log('🎵 [PlayerContext] 检测到播放完成，自动播放下一首')
+          // 播放下一首（后端会处理循环逻辑）
+          try {
+            await invoke('play_next')
+          } catch (error) {
+            console.error('自动播放下一首失败:', error)
+          }
+          return // 返回，等待下次同步获取最新状态
+        }
+
+        // 更新播放状态
+        setPrevPlayingState(state.is_playing)
 
         // 只在状态真正改变时更新，避免不必要的重渲染
         if (state.is_playing !== isPlaying) {
@@ -60,6 +82,16 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
             })
           }
         }
+
+        // 同步播放队列信息
+        if (state.playlist_queue.length > 0) {
+          setCurrentIndex(state.current_index)
+          // 如果audioList为空，从后端队列重建
+          if (audioList.length === 0 && state.current_audio_id && state.current_audio_name) {
+            // 注意：这里只能重建当前音频，完整列表需要从后端获取
+            setAudioList([{ id: state.current_audio_id, name: state.current_audio_name }])
+          }
+        }
       } catch (error) {
         console.error('同步播放状态失败:', error)
       }
@@ -69,7 +101,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     const interval = setInterval(syncState, 500) // 每0.5秒同步一次
 
     return () => clearInterval(interval)
-  }, [isPlaying, currentAudio])
+  }, [isPlaying, currentAudio, prevPlayingState, audioList.length])
 
   const playAudio = async (id: number, name: string, newAudioList?: Array<{id: number, name: string}>) => {
     try {
