@@ -9,6 +9,41 @@
 - **知识学习** - 定时播放课程、有声读物、学习材料等
 - **习惯养成** - 通过定时音频提醒帮助建立良好的作息习惯
 
+## Web 版本（Vercel）
+
+本仓库同时提供一个可部署到 Vercel 的 Web 版本：
+
+- ✅ 新概念英语（NCE1~4）在线播放（基于浏览器音频播放）
+- ✅ 播放队列（点击课程自动生成队列）
+- ✅ 在线音视频嵌入播放（YouTube / Bilibili）
+- ✅ 移动端优化（iPad/iPhone/Safari/微信内置浏览器）
+
+说明：Web 版本不包含桌面版的 SQLite/定时任务/音频提取等能力（这些依赖 Tauri/Rust 运行时）。
+
+### Web 版本数据源
+
+默认从 `https://www.linktime.link` 读取新概念资源：
+
+- `static/data.json`
+- `NCE1~NCE4/*.mp3`
+- `NCE1~NCE4/*.lrc`（存在则显示并滚动高亮）
+
+可通过环境变量覆盖：
+
+```bash
+VITE_NCE_BASE_URL=https://www.linktime.link
+```
+
+### 部署到 Vercel
+
+仓库已包含 `vercel.json`（自动使用 `npm run build` 并输出 `dist/`，同时配置 SPA 路由重写）。
+
+在 Vercel 项目中建议设置：
+
+- Build Command：`npm run build`
+- Output Directory：`dist`
+- Environment Variables：`VITE_NCE_BASE_URL=https://www.linktime.link`（可选）
+
 ## 应用截图
 
 ### 功能介绍
@@ -114,15 +149,15 @@ npm install
 ### 开发模式运行
 
 ```bash
-npm run dev              # 运行 Tauri 开发模式（推荐）
-npm run dev:web          # 仅运行 Vite 开发服务器（前端预览）
+npm run dev:web          # Web 版本开发（Vite）
+npm run dev:tauri        # 桌面版开发（Tauri）
 ```
 
 ### 构建生产版本
 
 ```bash
-npm run build            # 构建生产版本的 Tauri 应用
-npm run build:web        # 仅构建前端
+npm run build            # 构建 Web 版本（Vercel 使用）
+npm run build:tauri      # 构建桌面版（Tauri）
 ```
 
 ## 项目结构
@@ -142,6 +177,7 @@ moerduo/
 │   ├── hooks/               # 自定义 Hooks
 │   ├── App.tsx              # 主应用组件
 │   └── main.tsx             # 入口文件
+├── src/web/                  # Web 版本（新概念播放器 + 队列 + 在线嵌入）
 ├── src-tauri/               # 后端源代码
 │   └── src/
 │       ├── main.rs          # 程序入口
@@ -157,6 +193,7 @@ moerduo/
 ├── screenshot/              # 应用截图
 ├── package.json             # 前端依赖配置
 ├── Cargo.toml               # 后端依赖配置
+├── vercel.json              # Vercel 配置（Web 版本）
 └── README.md                # 本文件
 ```
 
