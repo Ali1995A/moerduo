@@ -121,8 +121,9 @@ export default function NcePlayerPage({ initialTab = 'lessons' }: Props) {
 
   return (
     <main className={`mx-auto max-w-5xl px-4 py-5 ${pageBottomPad}`}>
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-2">
+      <div className="kid-card p-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-wrap items-center gap-2">
           {([1, 2, 3, 4] as const).map((b) => (
             <button
               key={b}
@@ -132,22 +133,22 @@ export default function NcePlayerPage({ initialTab = 'lessons' }: Props) {
                 setTab('lessons')
               }}
               className={[
-                'h-10 rounded-xl px-3 text-sm font-semibold transition-colors',
-                book === b ? 'bg-blue-600 text-white' : 'border border-gray-200 bg-white text-gray-800 hover:bg-gray-50',
+                'kid-focus kid-btn kid-pill px-4 text-sm font-extrabold transition-colors',
+                book === b ? 'kid-btn-primary text-white' : 'kid-btn-soft text-gray-800 hover:bg-white',
               ].join(' ')}
             >
               NCE{b}
             </button>
           ))}
-        </div>
+          </div>
 
-        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={() => setTab('lessons')}
             className={[
-              'h-10 rounded-xl px-3 text-sm font-semibold',
-              tab === 'lessons' ? 'bg-blue-50 text-blue-700' : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200',
+              'kid-focus kid-btn kid-pill px-4 text-sm font-extrabold',
+              tab === 'lessons' ? 'bg-pink-100 text-pink-700' : 'kid-btn-soft text-gray-700 hover:bg-white',
             ].join(' ')}
           >
             课程
@@ -156,12 +157,13 @@ export default function NcePlayerPage({ initialTab = 'lessons' }: Props) {
             type="button"
             onClick={() => setTab('queue')}
             className={[
-              'h-10 rounded-xl px-3 text-sm font-semibold',
-              tab === 'queue' ? 'bg-blue-50 text-blue-700' : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200',
+              'kid-focus kid-btn kid-pill px-4 text-sm font-extrabold',
+              tab === 'queue' ? 'bg-pink-100 text-pink-700' : 'kid-btn-soft text-gray-700 hover:bg-white',
             ].join(' ')}
           >
-            队列{hasQueue ? ` (${queue.length})` : ''}
+            队列{hasQueue ? `（${queue.length}）` : ''}
           </button>
+          </div>
         </div>
       </div>
 
@@ -169,26 +171,26 @@ export default function NcePlayerPage({ initialTab = 'lessons' }: Props) {
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="搜索 Lesson 或标题"
-          className="h-11 w-full rounded-2xl border border-gray-200 bg-white px-4 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+          placeholder="找一找（输入 Lesson 或标题）"
+          className="kid-focus h-12 w-full rounded-3xl border border-pink-100 bg-white/80 px-4 text-sm font-semibold text-gray-800 outline-none placeholder:text-gray-400 focus:ring-2 focus:ring-pink-100"
         />
       </div>
 
       <div className="mt-4 grid gap-4 md:grid-cols-[420px_1fr]">
-        <section className="rounded-2xl border border-gray-200 bg-white shadow-sm">
-          <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
-            <div className="text-sm font-semibold text-gray-900">{tab === 'lessons' ? `NCE${book} 课程` : '当前播放队列'}</div>
-            <div className="text-xs text-gray-500">{tab === 'lessons' ? `${filteredLessons.length} 条` : `${queue.length} 条`}</div>
+        <section className="kid-card">
+          <div className="flex items-center justify-between border-b border-pink-50 px-4 py-3">
+            <div className="text-sm font-extrabold text-gray-900">{tab === 'lessons' ? `NCE${book} 课程` : '正在听的队列'}</div>
+            <div className="text-xs font-semibold text-gray-500">{tab === 'lessons' ? `${filteredLessons.length} 个` : `${queue.length} 个`}</div>
           </div>
 
           <div className="max-h-[60dvh] overflow-auto px-2 py-2 md:max-h-[calc(100dvh-260px)]">
             {tab === 'lessons' ? (
               loading ? (
-                <div className="p-4 text-sm text-gray-500">加载中…</div>
+                <div className="p-4 text-sm font-semibold text-gray-500">加载中…</div>
               ) : loadError ? (
-                <div className="p-4 text-sm text-red-600">{loadError}</div>
+                <div className="p-4 text-sm font-semibold text-red-600">{loadError}</div>
               ) : filteredLessons.length === 0 ? (
-                <div className="p-4 text-sm text-gray-500">没有匹配的课程</div>
+                <div className="p-4 text-sm font-semibold text-gray-500">没有找到哦～</div>
               ) : (
                 <ul className="space-y-1">
                   {filteredLessons.map((lesson) => {
@@ -205,16 +207,16 @@ export default function NcePlayerPage({ initialTab = 'lessons' }: Props) {
                             setTab('queue')
                           }}
                           className={[
-                            'w-full rounded-xl px-3 py-3 text-left transition-colors',
-                            active ? 'bg-blue-50' : 'hover:bg-gray-50',
+                            'kid-focus w-full rounded-2xl px-3 py-3 text-left transition-colors',
+                            active ? 'bg-pink-50' : 'hover:bg-white/70',
                           ].join(' ')}
                         >
                           <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0">
-                              <div className="truncate text-sm font-semibold text-gray-900">{lesson.lessonLabel}</div>
-                              <div className="mt-0.5 truncate text-xs text-gray-600">{lesson.title}</div>
+                              <div className="truncate text-base font-extrabold text-gray-900">{lesson.lessonLabel}</div>
+                              <div className="mt-0.5 truncate text-sm font-semibold text-gray-700">{lesson.title}</div>
                             </div>
-                            <div className="shrink-0 text-xs text-gray-400">▶</div>
+                            <div className="shrink-0 text-base text-pink-500">🎧</div>
                           </div>
                         </button>
                       </li>
@@ -223,7 +225,7 @@ export default function NcePlayerPage({ initialTab = 'lessons' }: Props) {
                 </ul>
               )
             ) : !hasQueue ? (
-              <div className="p-4 text-sm text-gray-500">从课程列表点一课开始播放，会自动生成队列。</div>
+              <div className="p-4 text-sm font-semibold text-gray-500">先从左边点一课开始听吧～</div>
             ) : (
               <ul className="space-y-1">
                 {queue.map((t, idx) => {
@@ -234,16 +236,16 @@ export default function NcePlayerPage({ initialTab = 'lessons' }: Props) {
                         type="button"
                         onClick={() => void playIndex(idx)}
                         className={[
-                          'w-full rounded-xl px-3 py-3 text-left transition-colors',
-                          active ? 'bg-blue-50' : 'hover:bg-gray-50',
+                          'kid-focus w-full rounded-2xl px-3 py-3 text-left transition-colors',
+                          active ? 'bg-pink-50' : 'hover:bg-white/70',
                         ].join(' ')}
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
-                            <div className="truncate text-sm font-semibold text-gray-900">{t.lessonLabel}</div>
-                            <div className="mt-0.5 truncate text-xs text-gray-600">{t.title}</div>
+                            <div className="truncate text-base font-extrabold text-gray-900">{t.lessonLabel}</div>
+                            <div className="mt-0.5 truncate text-sm font-semibold text-gray-700">{t.title}</div>
                           </div>
-                          <div className="shrink-0 text-xs text-gray-400">{active ? '正在播放' : '播放'}</div>
+                          <div className="shrink-0 text-xs font-bold text-pink-600">{active ? '正在听' : '点我听'}</div>
                         </div>
                       </button>
                     </li>
@@ -254,23 +256,23 @@ export default function NcePlayerPage({ initialTab = 'lessons' }: Props) {
           </div>
         </section>
 
-        <section className="rounded-2xl border border-gray-200 bg-white shadow-sm">
-          <div className="border-b border-gray-100 px-4 py-3">
-            <div className="text-sm font-semibold text-gray-900">歌词</div>
-            <div className="mt-1 text-xs text-gray-500">{currentTrack ? `${currentTrack.lessonLabel} · ${currentTrack.title}` : '选择一课开始播放'}</div>
+        <section className="kid-card">
+          <div className="border-b border-pink-50 px-4 py-3">
+            <div className="text-sm font-extrabold text-gray-900">字幕/歌词</div>
+            <div className="mt-1 text-xs font-semibold text-gray-500">{currentTrack ? `${currentTrack.lessonLabel} · ${currentTrack.title}` : '先选一课开始听'}</div>
           </div>
 
           <div ref={lyricsRef} className="max-h-[60dvh] overflow-auto px-4 py-4 md:max-h-[calc(100dvh-260px)]">
             {!currentTrack ? (
-              <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50 p-6 text-sm text-gray-500">
-                从左侧课程列表点一课开始播放。
+              <div className="rounded-2xl border border-dashed border-pink-100 bg-white/60 p-6 text-sm font-semibold text-gray-600">
+                从左边点一课，就会开始播放～
               </div>
             ) : lrcMissing ? (
-              <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50 p-6 text-sm text-gray-500">
-                暂无歌词（LRC）。
+              <div className="rounded-2xl border border-dashed border-pink-100 bg-white/60 p-6 text-sm font-semibold text-gray-600">
+                这一课暂时没有字幕/歌词。
               </div>
             ) : lrcLines.length === 0 ? (
-              <div className="p-4 text-sm text-gray-500">加载歌词中…</div>
+              <div className="p-4 text-sm font-semibold text-gray-500">加载中…</div>
             ) : (
               <div className="space-y-2">
                 {lrcLines.map((line, idx) => {
@@ -280,8 +282,8 @@ export default function NcePlayerPage({ initialTab = 'lessons' }: Props) {
                       key={`${line.time}:${idx}`}
                       data-line-index={idx}
                       className={[
-                        'rounded-xl px-3 py-2 text-sm transition-colors',
-                        active ? 'bg-blue-50 text-blue-800' : 'text-gray-700',
+                        'rounded-2xl px-3 py-2 text-base font-semibold transition-colors',
+                        active ? 'bg-pink-50 text-pink-700' : 'text-gray-700',
                       ].join(' ')}
                     >
                       {line.text || '…'}
@@ -298,4 +300,3 @@ export default function NcePlayerPage({ initialTab = 'lessons' }: Props) {
     </main>
   )
 }
-

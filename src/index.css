@@ -24,6 +24,68 @@ body {
   min-height: 100dvh;
 }
 
+/* Web "kid mode" (pink, fairy-tale, touch-friendly) */
+.kid-app {
+  font-family:
+    ui-rounded,
+    "SF Pro Rounded",
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    Helvetica,
+    Arial,
+    "Apple Color Emoji",
+    "Segoe UI Emoji";
+}
+
+.kid-bg {
+  background:
+    radial-gradient(900px 500px at 15% 10%, rgba(255, 182, 213, 0.55), transparent 55%),
+    radial-gradient(900px 500px at 85% 20%, rgba(255, 214, 165, 0.45), transparent 55%),
+    radial-gradient(900px 500px at 60% 90%, rgba(204, 231, 255, 0.55), transparent 60%),
+    linear-gradient(180deg, #fff7fb 0%, #ffffff 55%, #fff7fb 100%);
+}
+
+.kid-card {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(255, 105, 180, 0.18);
+  box-shadow:
+    0 10px 30px rgba(255, 105, 180, 0.08),
+    0 2px 8px rgba(0, 0, 0, 0.03);
+  border-radius: 22px;
+}
+
+.kid-pill {
+  border-radius: 9999px;
+}
+
+.kid-btn {
+  border-radius: 18px;
+  min-height: 44px;
+}
+
+.kid-btn-primary {
+  background: linear-gradient(135deg, #ff4fa3 0%, #ff7bc5 45%, #ffb3d9 100%);
+  box-shadow:
+    0 10px 22px rgba(255, 79, 163, 0.22),
+    0 2px 0 rgba(255, 255, 255, 0.6) inset;
+}
+
+.kid-btn-primary:active {
+  transform: translateY(1px);
+}
+
+.kid-btn-soft {
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(255, 105, 180, 0.18);
+}
+
+.kid-focus:focus-visible {
+  outline: 3px solid rgba(255, 79, 163, 0.35);
+  outline-offset: 2px;
+}
+
 /* Light theme styles */
 [data-theme="light"] {
   --bg-primary: #ffffff;

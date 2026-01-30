@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { loadPresetVideos, type PresetVideo } from '../online/presets'
 
 function getYouTubeId(url: string): string | null {
   try {
@@ -40,7 +41,7 @@ function buildEmbed(url: string): { provider: 'youtube' | 'bilibili'; embedUrl: 
   if (bv) {
     return {
       provider: 'bilibili',
-      embedUrl: `https://player.bilibili.com/player.html?bvid=${encodeURIComponent(bv)}&page=1&high_quality=1&danmaku=0`,
+      embedUrl: `https://player.bilibili.com/player.html?bvid=${encodeURIComponent(bv)}&page=1&high_quality=1&danmaku=0&autoplay=0`,
     }
   }
 
@@ -49,26 +50,69 @@ function buildEmbed(url: string): { provider: 'youtube' | 'bilibili'; embedUrl: 
 
 export default function OnlineEmbedPage() {
   const [input, setInput] = useState('')
+  const [presets, setPresets] = useState<PresetVideo[]>([])
+
+  useEffect(() => {
+    let canceled = false
+    loadPresetVideos().then((v) => {
+      if (canceled) return
+      setPresets(v)
+    })
+    return () => {
+      canceled = true
+    }
+  }, [])
+
   const embed = useMemo(() => buildEmbed(input.trim()), [input])
 
   return (
-    <main className="mx-auto max-w-5xl px-4 py-6">
-      <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-        <div className="text-sm font-semibold text-gray-900">在线视频（嵌入播放）</div>
-        <div className="mt-1 text-xs text-gray-500">支持 YouTube / Bilibili。复制链接粘贴即可播放。</div>
+    <main className="mx-auto max-w-5xl px-4 py-6 pb-[calc(env(safe-area-inset-bottom)+120px)]">
+      <div className="kid-card p-4">
+        <div className="text-sm font-extrabold text-gray-900">视频乐园</div>
+        <div className="mt-1 text-xs font-semibold text-gray-600">点下面的小卡片就能看（B 站/YouTube）。</div>
+
+        <div className="mt-4 grid gap-2 sm:grid-cols-2">
+          {presets.slice(0, 6).map((p, idx) => {
+            const disabled = !p.url.trim()
+            return (
+              <button
+                key={`${idx}:${p.title}`}
+                type="button"
+                onClick={() => {
+                  if (disabled) return
+                  setInput(p.url)
+                }}
+                className={[
+                  'kid-focus kid-btn w-full text-left',
+                  'kid-card px-4 py-3 transition-colors',
+                  disabled ? 'opacity-60' : 'hover:bg-white',
+                ].join(' ')}
+                disabled={disabled}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="truncate text-sm font-extrabold text-gray-900">{p.title}</div>
+                    <div className="mt-0.5 truncate text-xs font-semibold text-gray-500">{disabled ? '（等待配置链接）' : '点我播放'}</div>
+                  </div>
+                  <div className="shrink-0 text-base text-pink-500">🎬</div>
+                </div>
+              </button>
+            )
+          })}
+        </div>
 
         <div className="mt-4 flex flex-col gap-2 sm:flex-row">
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="粘贴 YouTube/B站 视频链接"
-            className="h-11 w-full rounded-xl border border-gray-300 px-3 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+            placeholder="也可以粘贴一个链接（B站/YouTube）"
+            className="kid-focus h-12 w-full rounded-3xl border border-pink-100 bg-white/80 px-4 text-sm font-semibold outline-none placeholder:text-gray-400 focus:ring-2 focus:ring-pink-100"
             inputMode="url"
           />
           <button
             type="button"
             onClick={() => setInput('')}
-            className="h-11 rounded-xl border border-gray-300 px-4 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            className="kid-focus kid-btn kid-btn-soft rounded-3xl px-5 text-sm font-extrabold text-gray-700 hover:bg-white"
           >
             清空
           </button>
@@ -76,15 +120,15 @@ export default function OnlineEmbedPage() {
 
         <div className="mt-4">
           {!input.trim() ? (
-            <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50 p-6 text-sm text-gray-500">
-              粘贴链接后将自动识别并生成播放器。
+            <div className="rounded-2xl border border-dashed border-pink-100 bg-white/60 p-6 text-sm font-semibold text-gray-600">
+              先点上面的小卡片，或者粘贴链接～
             </div>
           ) : !embed ? (
-            <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50 p-6 text-sm text-gray-500">
-              未识别的链接。请确认是 YouTube 或 Bilibili 的分享链接。
+            <div className="rounded-2xl border border-dashed border-pink-100 bg-white/60 p-6 text-sm font-semibold text-gray-600">
+              这个链接我不认识～请确认是 YouTube 或 Bilibili 的分享链接。
             </div>
           ) : (
-            <div className="aspect-video overflow-hidden rounded-xl border border-gray-200 bg-black">
+            <div className="aspect-video overflow-hidden rounded-2xl border border-pink-100 bg-black">
               <iframe
                 src={embed.embedUrl}
                 title="Online Player"
@@ -100,4 +144,3 @@ export default function OnlineEmbedPage() {
     </main>
   )
 }
-
