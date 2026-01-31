@@ -1,6 +1,20 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { loadPresetSeries, loadPresetVideos, type PresetSeries, type PresetVideo } from '../online/presets'
 
+function readCookie(name: string): string | null {
+  if (typeof document === 'undefined') return null
+  const match = document.cookie.match(new RegExp(`(?:^|; )${name.replace(/[$()*+./?[\\\]^{|}-]/g, '\\\\$&')}=([^;]*)`))
+  return match ? decodeURIComponent(match[1]) : null
+}
+
+function writeCookie(name: string, value: string, maxAgeSeconds: number) {
+  if (typeof document === 'undefined') return
+  document.cookie = `${name}=${encodeURIComponent(value)}; Path=/; Max-Age=${maxAgeSeconds}; SameSite=Lax`
+}
+
+const COOKIE_EPISODES = 'moerduo_bili_episodes'
+const COOKIE_SELECTED = 'moerduo_bili_selected'
+
 function extractIframeSrc(input: string): string | null {
   const match = input.match(/<iframe[^>]*\s+src=(["'])(.*?)\1/i)
   return match?.[2] ?? null
@@ -100,6 +114,28 @@ export default function OnlineEmbedPage() {
   const [isTheater, setIsTheater] = useState(false)
 
   useEffect(() => {
+    const rawEpisodes = readCookie(COOKIE_EPISODES)
+    if (rawEpisodes) {
+      try {
+        const parsed = JSON.parse(rawEpisodes) as unknown
+        if (parsed && typeof parsed === 'object') {
+          const next: Record<string, number> = {}
+          for (const [k, v] of Object.entries(parsed as Record<string, unknown>)) {
+            if (typeof k !== 'string') continue
+            const n = typeof v === 'number' ? v : Number(v)
+            if (Number.isFinite(n) && n > 0) next[k] = Math.floor(n)
+          }
+          setEpisodeByBvid(next)
+        }
+      } catch {
+        // ignore
+      }
+    }
+    const rawSelected = readCookie(COOKIE_SELECTED)
+    if (rawSelected) setSelectedBvid(rawSelected)
+  }, [])
+
+  useEffect(() => {
     let canceled = false
     loadPresetVideos().then((v) => {
       if (canceled) return
@@ -121,6 +157,15 @@ export default function OnlineEmbedPage() {
       canceled = true
     }
   }, [])
+
+  useEffect(() => {
+    writeCookie(COOKIE_EPISODES, JSON.stringify(episodeByBvid), 60 * 60 * 24 * 365)
+  }, [episodeByBvid])
+
+  useEffect(() => {
+    if (!selectedBvid) return
+    writeCookie(COOKIE_SELECTED, selectedBvid, 60 * 60 * 24 * 365)
+  }, [selectedBvid])
 
   const normalizedInput = useMemo(() => normalizeUrl(input), [input])
   const embed = useMemo(() => buildEmbed(normalizedInput), [normalizedInput])
