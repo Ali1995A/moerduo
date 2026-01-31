@@ -113,6 +113,12 @@ function makePinyinTip(title: string): string | null {
   return null
 }
 
+function normalizePinyinForDisplay(input: string): string {
+  // Some sources use IPA letters like ɑ (U+0251) and ɡ (U+0261) plus combining tone marks.
+  // Convert to normal Latin and normalize to NFC so a + combining becomes precomposed ā/á/ǎ/à.
+  return input.replace(/\u0251/g, 'a').replace(/\u0261/g, 'g').normalize('NFC')
+}
+
 export default function OnlineEmbedPage() {
   const [input, setInput] = useState('')
   const [presets, setPresets] = useState<PresetVideo[]>([])
@@ -354,7 +360,7 @@ export default function OnlineEmbedPage() {
                           <span>{s.pages} 集</span>
                           {pinyin ? (
                             <span className="pinyin-text rounded-full bg-pink-50 px-2 py-0.5 font-bold text-pink-700">
-                              {pinyin}
+                              {normalizePinyinForDisplay(pinyin)}
                             </span>
                           ) : null}
                         </div>
