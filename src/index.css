@@ -86,6 +86,19 @@ body {
   outline-offset: 2px;
 }
 
+/* Pinyin font (avoid symbol/greek-looking fallbacks) */
+.pinyin-text {
+  font-family:
+    "Tw Cen MT",
+    "Trebuchet MS",
+    "Arial Rounded MT Bold",
+    Arial,
+    system-ui,
+    sans-serif;
+  font-style: normal;
+  font-variant-ligatures: none;
+}
+
 /* Light theme styles */
 [data-theme="light"] {
   --bg-primary: #ffffff;
