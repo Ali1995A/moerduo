@@ -445,9 +445,12 @@ export default function OnlineEmbedPage() {
                             scrollToPlayer()
                           }}
                         disabled={nowPlaying.page <= 1}
-                        className="kid-focus kid-btn kid-btn-soft flex-1 rounded-2xl px-4 text-sm font-extrabold text-gray-800 disabled:opacity-50"
+                        className="kid-focus kid-btn kid-btn-soft flex flex-1 flex-col items-center justify-center rounded-2xl px-4 py-2 text-sm font-extrabold text-gray-800 disabled:opacity-50"
                       >
-                        上一集
+                        <span>上一集</span>
+                        <span className="pinyin-text mt-0.5 text-[11px] font-bold text-pink-600">
+                          {normalizePinyinForDisplay('shàng yí jí')}
+                        </span>
                       </button>
                       <button
                         type="button"
@@ -460,9 +463,12 @@ export default function OnlineEmbedPage() {
                             scrollToPlayer()
                           }}
                         disabled={nowPlaying.page >= nowPlaying.pages}
-                        className="kid-focus kid-btn kid-btn-primary flex-1 rounded-2xl px-4 text-sm font-extrabold text-white disabled:opacity-50"
+                        className="kid-focus kid-btn kid-btn-primary flex flex-1 flex-col items-center justify-center rounded-2xl px-4 py-2 text-sm font-extrabold text-white disabled:opacity-50"
                       >
-                        下一集
+                        <span>下一集</span>
+                        <span className="pinyin-text mt-0.5 text-[11px] font-bold text-white/90">
+                          {normalizePinyinForDisplay('xià yí jí')}
+                        </span>
                       </button>
                     </div>
                   </div>
