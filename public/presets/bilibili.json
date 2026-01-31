@@ -1,9 +1,26 @@
 [
-  { "title": "小朋友最爱的视频 1（待配置）", "url": "" },
-  { "title": "小朋友最爱的视频 2（待配置）", "url": "" },
-  { "title": "小朋友最爱的视频 3（待配置）", "url": "" },
-  { "title": "小朋友最爱的视频 4（待配置）", "url": "" },
-  { "title": "小朋友最爱的视频 5（待配置）", "url": "" },
-  { "title": "小朋友最爱的视频 6（待配置）", "url": "" }
+  {
+    "title": "小朋友最爱的视频 1",
+    "url": "https://player.bilibili.com/player.html?isOutside=true&aid=113706641917826&bvid=BV15uk9YREZx&cid=27504410969&p=1"
+  },
+  {
+    "title": "小朋友最爱的视频 2",
+    "url": "https://player.bilibili.com/player.html?isOutside=true&aid=207674061&bvid=BV15h411W7jK&cid=400765526&p=1"
+  },
+  {
+    "title": "小朋友最爱的视频 3",
+    "url": "https://player.bilibili.com/player.html?isOutside=true&aid=381879836&bvid=BV1uZ4y1C7SX&cid=700363615&p=1"
+  },
+  {
+    "title": "小朋友最爱的视频 4",
+    "url": "https://player.bilibili.com/player.html?isOutside=true&aid=114799543325530&bvid=BV1WG39zPETL&cid=30832067266&p=1"
+  },
+  {
+    "title": "小朋友最爱的视频 5",
+    "url": "https://player.bilibili.com/player.html?isOutside=true&aid=114799543325530&bvid=BV1WG39zPETL&cid=30832067805&p=2"
+  },
+  {
+    "title": "小朋友最爱的视频 6",
+    "url": "https://player.bilibili.com/player.html?isOutside=true&aid=114799543325530&bvid=BV1WG39zPETL&cid=30833969563&p=3"
+  }
 ]
-

@@ -1,6 +1,22 @@
 import { useEffect, useMemo, useState } from 'react'
 import { loadPresetVideos, type PresetVideo } from '../online/presets'
 
+function extractIframeSrc(input: string): string | null {
+  const match = input.match(/<iframe[^>]*\s+src=(["'])(.*?)\1/i)
+  return match?.[2] ?? null
+}
+
+function normalizeUrl(raw: string): string {
+  const trimmed = raw.trim()
+  if (!trimmed) return ''
+
+  const iframeSrc = extractIframeSrc(trimmed)
+  const candidate = iframeSrc ?? trimmed
+
+  if (candidate.startsWith('//')) return `https:${candidate}`
+  return candidate
+}
+
 function getYouTubeId(url: string): string | null {
   try {
     const u = new URL(url)
@@ -28,6 +44,20 @@ function getBilibiliBvid(url: string): string | null {
   }
 }
 
+function getBilibiliEmbed(url: string): string | null {
+  try {
+    const u = new URL(url)
+    if (u.hostname !== 'player.bilibili.com') return null
+    if (!u.pathname.endsWith('/player.html')) return null
+    const bvid = u.searchParams.get('bvid')
+    const page = u.searchParams.get('p') || u.searchParams.get('page') || '1'
+    if (!bvid) return null
+    return `https://player.bilibili.com/player.html?bvid=${encodeURIComponent(bvid)}&page=${encodeURIComponent(page)}&high_quality=1&danmaku=0&autoplay=0&isOutside=true`
+  } catch {
+    return null
+  }
+}
+
 function buildEmbed(url: string): { provider: 'youtube' | 'bilibili'; embedUrl: string } | null {
   const yt = getYouTubeId(url)
   if (yt) {
@@ -35,6 +65,11 @@ function buildEmbed(url: string): { provider: 'youtube' | 'bilibili'; embedUrl: 
       provider: 'youtube',
       embedUrl: `https://www.youtube.com/embed/${encodeURIComponent(yt)}?autoplay=0&playsinline=1`,
     }
+  }
+
+  const bilibiliEmbed = getBilibiliEmbed(url)
+  if (bilibiliEmbed) {
+    return { provider: 'bilibili', embedUrl: bilibiliEmbed }
   }
 
   const bv = getBilibiliBvid(url)
@@ -63,7 +98,8 @@ export default function OnlineEmbedPage() {
     }
   }, [])
 
-  const embed = useMemo(() => buildEmbed(input.trim()), [input])
+  const normalizedInput = useMemo(() => normalizeUrl(input), [input])
+  const embed = useMemo(() => buildEmbed(normalizedInput), [normalizedInput])
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-6 pb-[calc(env(safe-area-inset-bottom)+120px)]">
