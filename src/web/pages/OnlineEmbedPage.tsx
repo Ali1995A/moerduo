@@ -88,6 +88,7 @@ export default function OnlineEmbedPage() {
   const [presets, setPresets] = useState<PresetVideo[]>([])
   const [series, setSeries] = useState<PresetSeries[]>([])
   const [episodeByBvid, setEpisodeByBvid] = useState<Record<string, number>>({})
+  const [selectedBvid, setSelectedBvid] = useState<string | null>(null)
   const [nowPlaying, setNowPlaying] = useState<{
     title: string
     bvid: string
@@ -107,6 +108,7 @@ export default function OnlineEmbedPage() {
     loadPresetSeries().then((s) => {
       if (canceled) return
       setSeries(s)
+      setSelectedBvid((prev) => prev ?? (s[0]?.bvid ?? null))
       setEpisodeByBvid((prev) => {
         const next = { ...prev }
         for (const item of s) {
@@ -122,6 +124,11 @@ export default function OnlineEmbedPage() {
 
   const normalizedInput = useMemo(() => normalizeUrl(input), [input])
   const embed = useMemo(() => buildEmbed(normalizedInput), [normalizedInput])
+  const selectedSeries = useMemo(() => {
+    if (series.length === 0) return null
+    if (selectedBvid) return series.find((s) => s.bvid === selectedBvid) ?? series[0]
+    return series[0]
+  }, [series, selectedBvid])
 
   function clampEpisode(page: number, pages: number): number {
     const max = Math.max(1, Math.floor(pages))
@@ -184,14 +191,89 @@ export default function OnlineEmbedPage() {
 
             <div className="mt-4 kid-card p-4">
               <div className="text-sm font-extrabold text-gray-900">视频合集</div>
-              <div className="mt-1 text-xs font-semibold text-gray-600">每个合集一行：选第几集，然后点“播放”。</div>
+              <div className="mt-1 text-xs font-semibold text-gray-600">先选一个合集，再选第几集。</div>
+
+              <div className="sticky top-0 z-10 -mx-4 mt-3 border-y border-pink-100 bg-white/90 px-4 py-3 backdrop-blur">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
+                    <div className="truncate text-sm font-extrabold text-gray-900">
+                      {selectedSeries ? selectedSeries.title : '请选择一个合集'}
+                    </div>
+                    <div className="mt-0.5 text-xs font-semibold text-gray-600">
+                      {selectedSeries ? `${selectedSeries.pages} 集` : ''}
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!selectedSeries) return
+                        const page = getEpisode(selectedSeries.bvid)
+                        setEpisode(selectedSeries.bvid, page - 1, selectedSeries.pages)
+                      }}
+                      disabled={!selectedSeries}
+                      className="kid-focus kid-btn kid-btn-soft w-12 rounded-2xl text-lg font-extrabold text-gray-800 disabled:opacity-50"
+                      aria-label="上一集"
+                    >
+                      −
+                    </button>
+
+                    <div className="kid-card kid-pill px-4 py-2 text-sm font-extrabold text-gray-800">
+                      第 {String(selectedSeries ? getEpisode(selectedSeries.bvid) : 1).padStart(3, '0')} 集
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!selectedSeries) return
+                        const page = getEpisode(selectedSeries.bvid)
+                        setEpisode(selectedSeries.bvid, page + 1, selectedSeries.pages)
+                      }}
+                      disabled={!selectedSeries}
+                      className="kid-focus kid-btn kid-btn-soft w-12 rounded-2xl text-lg font-extrabold text-gray-800 disabled:opacity-50"
+                      aria-label="下一集"
+                    >
+                      +
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!selectedSeries) return
+                        const p = clampEpisode(getEpisode(selectedSeries.bvid), selectedSeries.pages)
+                        playSeriesEpisode(selectedSeries.bvid, p)
+                        setNowPlaying({ title: selectedSeries.title, bvid: selectedSeries.bvid, page: p, pages: selectedSeries.pages })
+                        scrollToPlayer()
+                      }}
+                      disabled={!selectedSeries}
+                      className="kid-focus kid-btn kid-btn-primary rounded-2xl px-6 text-sm font-extrabold text-white disabled:opacity-50"
+                    >
+                      播放
+                    </button>
+                  </div>
+                </div>
+              </div>
 
               <div className="mt-3 flex flex-col gap-2">
                 {series.map((s) => {
                   const page = getEpisode(s.bvid)
                   const padded = String(page).padStart(3, '0')
+                  const selected = selectedSeries?.bvid === s.bvid
                   return (
-                    <div key={s.bvid} className="kid-card flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div
+                      key={s.bvid}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => setSelectedBvid(s.bvid)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') setSelectedBvid(s.bvid)
+                      }}
+                      className={[
+                        'kid-focus kid-card flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:justify-between cursor-pointer',
+                        selected ? 'bg-pink-50' : '',
+                      ].join(' ')}
+                    >
                       <div className="min-w-0">
                         <div className="truncate text-sm font-extrabold text-gray-900">{s.title}</div>
                         <div className="mt-0.5 text-xs font-semibold text-gray-500">{s.pages} 集</div>
@@ -200,7 +282,11 @@ export default function OnlineEmbedPage() {
                       <div className="flex flex-wrap items-center gap-2">
                         <button
                           type="button"
-                          onClick={() => setEpisode(s.bvid, page - 1, s.pages)}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setSelectedBvid(s.bvid)
+                            setEpisode(s.bvid, page - 1, s.pages)
+                          }}
                           className="kid-focus kid-btn kid-btn-soft w-12 rounded-2xl text-lg font-extrabold text-gray-800"
                           aria-label="上一集"
                         >
@@ -211,24 +297,15 @@ export default function OnlineEmbedPage() {
 
                         <button
                           type="button"
-                          onClick={() => setEpisode(s.bvid, page + 1, s.pages)}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setSelectedBvid(s.bvid)
+                            setEpisode(s.bvid, page + 1, s.pages)
+                          }}
                           className="kid-focus kid-btn kid-btn-soft w-12 rounded-2xl text-lg font-extrabold text-gray-800"
                           aria-label="下一集"
                         >
                           +
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const p = clampEpisode(getEpisode(s.bvid), s.pages)
-                            playSeriesEpisode(s.bvid, p)
-                            setNowPlaying({ title: s.title, bvid: s.bvid, page: p, pages: s.pages })
-                            scrollToPlayer()
-                          }}
-                          className="kid-focus kid-btn kid-btn-primary rounded-2xl px-5 text-sm font-extrabold text-white"
-                        >
-                          播放
                         </button>
                       </div>
                     </div>
