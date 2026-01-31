@@ -89,7 +89,7 @@ body {
 /* Pinyin font (avoid symbol/greek-looking fallbacks) */
 @font-face {
   font-family: "PinyinKid";
-  src: url("/fonts/pinyin.ttf") format("truetype");
+  src: url("/fonts/pinyin.woff2") format("woff2");
   font-style: normal;
   font-weight: 700;
   font-display: swap;

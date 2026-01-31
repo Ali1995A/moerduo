@@ -1,6 +1,6 @@
-Nunito font
+Noto Sans font
 
-This repository includes a bundled copy of the Nunito font (public/fonts/pinyin.ttf),
+This repository includes a bundled copy of the Noto Sans font (public/fonts/pinyin.woff2),
 licensed under the SIL Open Font License, Version 1.1 (OFL-1.1).
 
 License: SIL Open Font License 1.1

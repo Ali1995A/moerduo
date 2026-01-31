@@ -30,6 +30,7 @@ Cargo.lock
 Thumbs.db
 *.tmp
 public/fonts/_nunito.css
+public/fonts/_noto.css
 
 # Tauri
 src-tauri/target/
