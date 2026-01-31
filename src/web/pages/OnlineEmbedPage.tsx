@@ -95,6 +95,8 @@ export default function OnlineEmbedPage() {
     pages: number
   } | null>(null)
   const playerRef = useRef<HTMLDivElement | null>(null)
+  const playerBoxRef = useRef<HTMLDivElement | null>(null)
+  const [isTheater, setIsTheater] = useState(false)
 
   useEffect(() => {
     let canceled = false
@@ -151,6 +153,25 @@ export default function OnlineEmbedPage() {
     requestAnimationFrame(() => {
       el.scrollIntoView({ behavior: 'smooth', block: 'start' })
     })
+  }
+
+  function requestPlayerFullscreen() {
+    const el = playerBoxRef.current
+    if (!el) return
+    const anyEl = el as any
+    const req =
+      el.requestFullscreen ||
+      anyEl.webkitRequestFullscreen ||
+      anyEl.webkitRequestFullScreen ||
+      anyEl.mozRequestFullScreen ||
+      anyEl.msRequestFullscreen
+    if (typeof req === 'function') {
+      try {
+        req.call(el)
+      } catch {
+        // ignore
+      }
+    }
   }
 
   return (
@@ -284,7 +305,12 @@ export default function OnlineEmbedPage() {
         </section>
 
         <section ref={playerRef} className="min-h-0">
-          <div className="kid-card flex h-full min-h-0 flex-col p-3">
+          <div
+            className={[
+              'kid-card flex h-full min-h-0 flex-col p-3',
+              isTheater ? 'fixed inset-0 z-50 m-0 rounded-none p-4 pt-6 bg-white/95 backdrop-blur' : '',
+            ].join(' ')}
+          >
             {!input.trim() ? (
               <div className="rounded-2xl border border-dashed border-pink-100 bg-white/60 p-6 text-sm font-semibold text-gray-600">
                 点一个合集的“播放”，就会在这里出现播放器～
@@ -295,6 +321,26 @@ export default function OnlineEmbedPage() {
               </div>
             ) : (
               <>
+                <div className="mb-3 flex items-center justify-between gap-2">
+                  <div className="text-xs font-extrabold text-gray-700">{isTheater ? '大窗口播放' : '播放窗口'}</div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsTheater((v) => !v)}
+                      className="kid-focus kid-btn kid-btn-soft rounded-2xl px-4 text-sm font-extrabold text-gray-800"
+                    >
+                      {isTheater ? '还原' : '放大'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={requestPlayerFullscreen}
+                      className="kid-focus kid-btn kid-btn-primary rounded-2xl px-4 text-sm font-extrabold text-white"
+                    >
+                      全屏
+                    </button>
+                  </div>
+                </div>
+
                 {nowPlaying ? (
                   <div className="mb-3 flex flex-col gap-2">
                     <div className="min-w-0">
@@ -337,7 +383,7 @@ export default function OnlineEmbedPage() {
                   </div>
                 ) : null}
 
-                <div className="min-h-0 flex-1 overflow-hidden rounded-2xl border border-pink-100 bg-black">
+                <div ref={playerBoxRef} className="min-h-0 flex-1 overflow-hidden rounded-2xl border border-pink-100 bg-black">
                   <iframe
                     src={embed.embedUrl}
                     title="Online Player"
