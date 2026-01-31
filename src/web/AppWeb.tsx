@@ -57,7 +57,7 @@ export default function AppWeb() {
     <Router>
       <div className="kid-app min-h-dvh kid-bg flex flex-col">
         <TopNav />
-        <div className="flex-1 min-h-0 overflow-hidden">
+        <div className="flex-1 min-h-0 overflow-auto">
           <Routes>
             <Route path="/" element={<Navigate to="/online" replace />} />
             <Route path="/queue" element={<NcePlayerPage initialTab="queue" />} />
