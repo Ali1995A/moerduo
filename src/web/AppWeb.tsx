@@ -20,7 +20,10 @@ function TopNav() {
               ♡
             </div>
             <div>
-              <div className="text-base font-extrabold tracking-tight text-gray-900">磨耳朵</div>
+              <div className="flex items-baseline gap-2">
+                <div className="text-base font-extrabold tracking-tight text-gray-900">磨耳朵</div>
+                {__BUILD_SHA__ ? <div className="text-[10px] font-extrabold text-gray-400">v{__BUILD_SHA__}</div> : null}
+              </div>
               <div className="text-xs font-medium text-pink-600">新概念小播放器</div>
             </div>
           </div>

@@ -8,3 +8,4 @@ interface ImportMeta {
   readonly env: ImportMetaEnv
 }
 
+declare const __BUILD_SHA__: string
