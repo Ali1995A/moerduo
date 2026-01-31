@@ -87,13 +87,23 @@ body {
 }
 
 /* Pinyin font (avoid symbol/greek-looking fallbacks) */
+@font-face {
+  font-family: "PinyinKid";
+  src: url("/fonts/pinyin.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+}
+
 .pinyin-text {
   font-family:
-    "Tw Cen MT",
-    "Trebuchet MS",
-    "Arial Rounded MT Bold",
-    Arial,
+    "PinyinKid",
+    ui-rounded,
+    "SF Pro Rounded",
+    -apple-system,
     system-ui,
+    Arial,
+    Helvetica,
     sans-serif;
   font-weight: 700;
   font-style: normal;

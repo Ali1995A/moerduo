@@ -1,0 +1,6 @@
+Nunito font
+
+This repository includes a bundled copy of the Nunito font (public/fonts/pinyin.ttf),
+licensed under the SIL Open Font License, Version 1.1 (OFL-1.1).
+
+License: SIL Open Font License 1.1

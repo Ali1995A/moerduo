@@ -29,6 +29,7 @@ Cargo.lock
 .DS_Store
 Thumbs.db
 *.tmp
+public/fonts/_nunito.css
 
 # Tauri
 src-tauri/target/
