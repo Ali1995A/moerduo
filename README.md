@@ -27,6 +27,7 @@ Web 版默认进入“视频乐园”页面（路由：`/online`），按 5 岁�
 - 横屏（iPad）为左右布局：左侧“视频合集列表”，右侧“播放器”
 - 左侧列表支持滚动条与触屏滑动（含 iOS 的惯性滚动）
 - 每个合集在本行内都提供：`- / 第xxx集 / + / 播放`，无需先选中再到顶部找按钮
+- 点击“第001集”会弹出“选集列表”（窄面板，单列数字，可滚动），适合 100+ 集的合集快速跳转
 - 右侧播放器支持“本页放大（剧场模式）”与“全屏”（不跳转到外部页面）
 - 页面整体高度约束在横屏可视范围内：容器内容超出则在局部滚动，而不是让用户上下找按钮
 
@@ -66,6 +67,11 @@ Web 版的“视频合集”来自配置文件：`public/presets/bilibili-series
 - `bvid`：B 站 BV 号
 - `pages`：集数（对应 `p=1..pages`）
 
+建议：
+
+- `title` 尽量短（例如“儿童百科”），避免在 iPad/微信内置浏览器里把一行布局挤变形
+- 合集顺序就是页面显示顺序：把条目移动到数组更靠前的位置即可“置顶”
+
 示例（最简）：
 
 ```json
@@ -104,6 +110,24 @@ Web 版的“视频合集”来自配置文件：`public/presets/bilibili-series
 ]
 ```
 
+#### 快速获取 `aid / pages / cids`（推荐）
+
+在 Windows PowerShell 里执行（把 BV 号替换成你的）：
+
+```powershell
+$bvid = "BV1otzcB8EF4"
+$j = (curl.exe -s "https://api.bilibili.com/x/web-interface/view?bvid=$bvid" | ConvertFrom-Json)
+$aid = $j.data.aid
+$pages = $j.data.pages.Count
+$cids = @($j.data.pages | Sort-Object page | ForEach-Object { [int64]$_.cid })
+
+"aid=$aid"
+"pages=$pages"
+$cids -join ","
+```
+
+拿到的 `aid/pages/cids` 直接填回 `public/presets/bilibili-series.json` 对应条目即可。
+
 ### 播放记录（自动续播）
 
 Web 版会把“每个合集上次播放到第几集”写入浏览器 Cookie（同一域名下生效）：
@@ -118,6 +142,7 @@ Web 版会把“每个合集上次播放到第几集”写入浏览器 Cookie（
 - 拼音提示的映射逻辑在：`src/web/pages/OnlineEmbedPage.tsx`（`makePinyinTip`）
 - 拼音会做统一规范化展示：把 `a/ā/á/ǎ/à` 规范成 `ɑ̄ ɑ́ ɑ̌ ɑ̀`（避免 iPad 上出现“看起来像希腊字母的 a”）
 - 拼音使用内置字体 `PinyinKid`（文件在 `public/fonts/`，样式在 `src/index.css` 的 `.pinyin-text`）
+- “上一集 / 下一集”等按钮也带拼音（同一字体与规范化规则）
 
 ### 缓存与“我明明推送了但页面没变”
 
