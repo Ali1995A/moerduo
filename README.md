@@ -20,6 +20,18 @@
 
 说明：Web 版本不包含桌面版的 SQLite/定时任务/音频提取等能力（这些依赖 Tauri/Rust 运行时）。
 
+### Web 版本的页面与交互（儿童模式）
+
+Web 版默认进入“视频乐园”页面（路由：`/online`），按 5 岁儿童点击即用的思路做了交互与样式：
+
+- 横屏（iPad）为左右布局：左侧“视频合集列表”，右侧“播放器”
+- 左侧列表支持滚动条与触屏滑动（含 iOS 的惯性滚动）
+- 每个合集在本行内都提供：`- / 第xxx集 / + / 播放`，无需先选中再到顶部找按钮
+- 右侧播放器支持“本页放大（剧场模式）”与“全屏”（不跳转到外部页面）
+- 页面整体高度约束在横屏可视范围内：容器内容超出则在局部滚动，而不是让用户上下找按钮
+
+> 版本号会显示在页面顶部（形如 `v6685bec`），用于确认 Vercel/Cloudflare 是否已刷新到最新构建。
+
 ### Web 版本数据源
 
 默认从 `https://www.linktime.link` 读取新概念资源：
@@ -43,6 +55,77 @@ VITE_NCE_BASE_URL=https://www.linktime.link
 - Build Command：`npm run build`
 - Output Directory：`dist`
 - Environment Variables：`VITE_NCE_BASE_URL=https://www.linktime.link`（可选）
+
+### 配置 Bilibili“合集”（嵌入播放）
+
+Web 版的“视频合集”来自配置文件：`public/presets/bilibili-series.json`。
+
+每个条目最少需要：
+
+- `title`：展示标题（中文）
+- `bvid`：B 站 BV 号
+- `pages`：集数（对应 `p=1..pages`）
+
+示例（最简）：
+
+```json
+[
+  {
+    "title": "数字积木（120集，分50P）",
+    "bvid": "BV1GQ6iBREbH",
+    "pages": 50
+  }
+]
+```
+
+#### 为什么有时“选哪一集都播放第 1 集”
+
+部分 B 站视频的每一集（`p`）对应不同的 `cid`。如果只拼 `bvid + p`，某些情况下播放器会回落到第 1 集。
+
+解决方法：在该条目里补充 `aid` 和 `cids`（每一集对应一个 `cid`，长度应等于 `pages`）。来源一般就是你复制的 iframe 代码中的参数：
+
+```html
+<iframe
+  src="//player.bilibili.com/player.html?isOutside=true&aid=...&bvid=...&cid=...&p=1"
+></iframe>
+```
+
+配置示例（截断演示）：
+
+```json
+[
+  {
+    "title": "数字积木（120集，分50P）",
+    "bvid": "BV1GQ6iBREbH",
+    "aid": 123456789,
+    "pages": 50,
+    "cids": [111, 222, 333]
+  }
+]
+```
+
+### 播放记录（自动续播）
+
+Web 版会把“每个合集上次播放到第几集”写入浏览器 Cookie（同一域名下生效）：
+
+- 同一设备：下次打开继续从上次的集数开始
+- 换设备/换浏览器：是全新的播放记录（不会跨设备同步）
+
+### 拼音（带声调）与字体
+
+“视频合集”会显示一行拼音提示，便于孩子识别（例如：`shù zì jī mù`）。
+
+- 拼音提示的映射逻辑在：`src/web/pages/OnlineEmbedPage.tsx`（`makePinyinTip`）
+- 拼音会做统一规范化展示：把 `a/ā/á/ǎ/à` 规范成 `ɑ̄ ɑ́ ɑ̌ ɑ̀`（避免 iPad 上出现“看起来像希腊字母的 a”）
+- 拼音使用内置字体 `PinyinKid`（文件在 `public/fonts/`，样式在 `src/index.css` 的 `.pinyin-text`）
+
+### 缓存与“我明明推送了但页面没变”
+
+如果你在无痕模式/不同设备仍然看到旧样式，通常是 CDN 缓存导致（Cloudflare / Vercel）：
+
+1. 先看页面顶部版本号（`vxxxxxxx`）是否已变化
+2. 若版本号没变：等待 Vercel 部署完成，或检查部署项目是否指向正确分支
+3. 若版本号已变但样式没变：在 Cloudflare 清除缓存（可按“主机名”或“前缀”清除），再强制刷新
 
 ## 应用截图
 
