@@ -100,61 +100,6 @@ function buildEmbed(url: string): { provider: 'youtube' | 'bilibili'; embedUrl: 
   return null
 }
 
-function toPinyinWithToneNumber(pinyin: string): string {
-  // Basic pinyin tone marks to tone numbers, keeps non-matching text as-is.
-  const map: Record<string, { base: string; tone: number }> = {
-    'ā': { base: 'a', tone: 1 },
-    'á': { base: 'a', tone: 2 },
-    'ǎ': { base: 'a', tone: 3 },
-    'à': { base: 'a', tone: 4 },
-    'ē': { base: 'e', tone: 1 },
-    'é': { base: 'e', tone: 2 },
-    'ě': { base: 'e', tone: 3 },
-    'è': { base: 'e', tone: 4 },
-    'ī': { base: 'i', tone: 1 },
-    'í': { base: 'i', tone: 2 },
-    'ǐ': { base: 'i', tone: 3 },
-    'ì': { base: 'i', tone: 4 },
-    'ō': { base: 'o', tone: 1 },
-    'ó': { base: 'o', tone: 2 },
-    'ǒ': { base: 'o', tone: 3 },
-    'ò': { base: 'o', tone: 4 },
-    'ū': { base: 'u', tone: 1 },
-    'ú': { base: 'u', tone: 2 },
-    'ǔ': { base: 'u', tone: 3 },
-    'ù': { base: 'u', tone: 4 },
-    'ǖ': { base: 'ü', tone: 1 },
-    'ǘ': { base: 'ü', tone: 2 },
-    'ǚ': { base: 'ü', tone: 3 },
-    'ǜ': { base: 'ü', tone: 4 },
-    'ń': { base: 'n', tone: 2 },
-    'ň': { base: 'n', tone: 3 },
-    'ǹ': { base: 'n', tone: 4 },
-    'ḿ': { base: 'm', tone: 2 },
-  }
-  const words = pinyin
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean)
-  return words
-    .map((w) => {
-      let tone = 0
-      let out = ''
-      for (const ch of w) {
-        const m = map[ch]
-        if (m) {
-          out += m.base
-          tone = m.tone
-        } else {
-          out += ch
-        }
-      }
-      if (tone > 0) out += String(tone)
-      return out
-    })
-    .join(' ')
-}
-
 function makePinyinTip(title: string): string | null {
   // Minimal built-in pinyin tips for the most common UI words.
   const normalized = title.replace(/\s+/g, '').toLowerCase()
@@ -389,7 +334,6 @@ export default function OnlineEmbedPage() {
                   const padded = String(page).padStart(3, '0')
                   const selected = selectedSeries?.bvid === s.bvid
                   const pinyin = makePinyinTip(s.title)
-                  const pinyinNumber = pinyin ? toPinyinWithToneNumber(pinyin) : null
                   return (
                     <div
                       key={s.bvid}
@@ -411,7 +355,6 @@ export default function OnlineEmbedPage() {
                           {pinyin ? (
                             <span className="rounded-full bg-pink-50 px-2 py-0.5 font-extrabold text-pink-700">
                               {pinyin}
-                              {pinyinNumber ? `（${pinyinNumber}）` : ''}
                             </span>
                           ) : null}
                         </div>
