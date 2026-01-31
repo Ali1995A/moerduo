@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, Link, useLocation, Navigate } from 'react-router-dom'
 import { BookOpen, ListMusic, Globe } from 'lucide-react'
 import NcePlayerPage from './pages/NcePlayerPage'
 import OnlineEmbedPage from './pages/OnlineEmbedPage'
@@ -6,9 +6,9 @@ import OnlineEmbedPage from './pages/OnlineEmbedPage'
 function TopNav() {
   const location = useLocation()
   const items = [
-    { to: '/', label: '听课', icon: BookOpen },
-    { to: '/queue', label: '队列', icon: ListMusic },
     { to: '/online', label: '视频', icon: Globe },
+    { to: '/lessons', label: '听课', icon: BookOpen },
+    { to: '/queue', label: '队列', icon: ListMusic },
   ]
 
   return (
@@ -52,13 +52,16 @@ function TopNav() {
 export default function AppWeb() {
   return (
     <Router>
-      <div className="kid-app min-h-dvh kid-bg">
+      <div className="kid-app min-h-dvh kid-bg flex flex-col">
         <TopNav />
-        <Routes>
-          <Route path="/" element={<NcePlayerPage />} />
-          <Route path="/queue" element={<NcePlayerPage initialTab="queue" />} />
-          <Route path="/online" element={<OnlineEmbedPage />} />
-        </Routes>
+        <div className="flex-1 min-h-0 overflow-hidden">
+          <Routes>
+            <Route path="/" element={<Navigate to="/online" replace />} />
+            <Route path="/queue" element={<NcePlayerPage initialTab="queue" />} />
+            <Route path="/lessons" element={<NcePlayerPage />} />
+            <Route path="/online" element={<OnlineEmbedPage />} />
+          </Routes>
+        </div>
       </div>
     </Router>
   )

@@ -150,20 +150,18 @@ export default function OnlineEmbedPage() {
     if (!el) return
     requestAnimationFrame(() => {
       el.scrollIntoView({ behavior: 'smooth', block: 'start' })
-      // account for sticky header height
-      setTimeout(() => window.scrollBy({ top: -84, left: 0, behavior: 'instant' as ScrollBehavior }), 0)
     })
   }
 
   return (
-    <main className="mx-auto max-w-5xl px-4 py-6 pb-[calc(env(safe-area-inset-bottom)+120px)]">
-      <div className="kid-card p-4">
-        <div className="text-sm font-extrabold text-gray-900">视频乐园</div>
-        <div className="mt-1 text-xs font-semibold text-gray-600">点下面的小卡片就能看（B 站/YouTube）。</div>
+    <main className="h-full w-full p-4 pb-[calc(env(safe-area-inset-bottom)+12px)]">
+      <div className="h-full w-full grid min-h-0 gap-4 md:grid-cols-[1fr_520px]">
+        <section className="min-h-0 overflow-auto">
+          <div className="kid-card p-4">
+            <div className="text-sm font-extrabold text-gray-900">视频乐园</div>
+            <div className="mt-1 text-xs font-semibold text-gray-600">点下面的小卡片就能看（B 站/YouTube）。</div>
 
-        <div className="mt-4 grid gap-4 md:grid-cols-[1fr_420px]">
-          <section className="flex flex-col gap-4">
-            <div className="kid-card p-4">
+            <div className="mt-4 kid-card p-4">
               <div className="text-sm font-extrabold text-gray-900">视频合集</div>
               <div className="mt-1 text-xs font-semibold text-gray-600">每个合集一行：选第几集，然后点“播放”。</div>
 
@@ -218,7 +216,7 @@ export default function OnlineEmbedPage() {
               </div>
             </div>
 
-            <div className="kid-card p-4">
+            <div className="mt-4 kid-card p-4">
               <div className="text-sm font-extrabold text-gray-900">小卡片</div>
               <div className="mt-1 text-xs font-semibold text-gray-600">点一下就播放。</div>
               <div className="mt-3 grid gap-2 sm:grid-cols-2">
@@ -256,7 +254,7 @@ export default function OnlineEmbedPage() {
               </div>
             </div>
 
-            <div className="kid-card p-4">
+            <div className="mt-4 kid-card p-4">
               <div className="text-sm font-extrabold text-gray-900">粘贴链接</div>
               <div className="mt-1 text-xs font-semibold text-gray-600">也可以自己粘贴一个链接（B站/YouTube）。</div>
               <div className="mt-3 flex flex-col gap-2 sm:flex-row">
@@ -282,77 +280,77 @@ export default function OnlineEmbedPage() {
                 </button>
               </div>
             </div>
-          </section>
+          </div>
+        </section>
 
-          <section ref={playerRef} className="md:sticky md:top-24 md:self-start">
-            <div className="kid-card p-3">
-              {!input.trim() ? (
-                <div className="rounded-2xl border border-dashed border-pink-100 bg-white/60 p-6 text-sm font-semibold text-gray-600">
-                  点一个合集的“播放”，就会在这里出现播放器～
-                </div>
-              ) : !embed ? (
-                <div className="rounded-2xl border border-dashed border-pink-100 bg-white/60 p-6 text-sm font-semibold text-gray-600">
-                  这个链接我不认识～请确认是 YouTube 或 Bilibili 的分享链接。
-                </div>
-              ) : (
-                <>
-                  {nowPlaying ? (
-                    <div className="mb-3 flex flex-col gap-2">
-                      <div className="min-w-0">
-                        <div className="truncate text-sm font-extrabold text-gray-900">{nowPlaying.title}</div>
-                        <div className="mt-0.5 text-xs font-semibold text-gray-600">
-                          第 {String(nowPlaying.page).padStart(3, '0')} 集 / 共 {nowPlaying.pages} 集
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const prev = clampEpisode(nowPlaying.page - 1, nowPlaying.pages)
-                            setEpisode(nowPlaying.bvid, prev, nowPlaying.pages)
-                            playSeriesEpisode(nowPlaying.bvid, prev)
-                            setNowPlaying({ ...nowPlaying, page: prev })
-                            scrollToPlayer()
-                          }}
-                          disabled={nowPlaying.page <= 1}
-                          className="kid-focus kid-btn kid-btn-soft flex-1 rounded-2xl px-4 text-sm font-extrabold text-gray-800 disabled:opacity-50"
-                        >
-                          上一集
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const next = clampEpisode(nowPlaying.page + 1, nowPlaying.pages)
-                            setEpisode(nowPlaying.bvid, next, nowPlaying.pages)
-                            playSeriesEpisode(nowPlaying.bvid, next)
-                            setNowPlaying({ ...nowPlaying, page: next })
-                            scrollToPlayer()
-                          }}
-                          disabled={nowPlaying.page >= nowPlaying.pages}
-                          className="kid-focus kid-btn kid-btn-primary flex-1 rounded-2xl px-4 text-sm font-extrabold text-white disabled:opacity-50"
-                        >
-                          下一集
-                        </button>
+        <section ref={playerRef} className="min-h-0">
+          <div className="kid-card flex h-full min-h-0 flex-col p-3">
+            {!input.trim() ? (
+              <div className="rounded-2xl border border-dashed border-pink-100 bg-white/60 p-6 text-sm font-semibold text-gray-600">
+                点一个合集的“播放”，就会在这里出现播放器～
+              </div>
+            ) : !embed ? (
+              <div className="rounded-2xl border border-dashed border-pink-100 bg-white/60 p-6 text-sm font-semibold text-gray-600">
+                这个链接我不认识～请确认是 YouTube 或 Bilibili 的分享链接。
+              </div>
+            ) : (
+              <>
+                {nowPlaying ? (
+                  <div className="mb-3 flex flex-col gap-2">
+                    <div className="min-w-0">
+                      <div className="truncate text-sm font-extrabold text-gray-900">{nowPlaying.title}</div>
+                      <div className="mt-0.5 text-xs font-semibold text-gray-600">
+                        第 {String(nowPlaying.page).padStart(3, '0')} 集 / 共 {nowPlaying.pages} 集
                       </div>
                     </div>
-                  ) : null}
 
-                  <div className="aspect-video overflow-hidden rounded-2xl border border-pink-100 bg-black">
-                    <iframe
-                      src={embed.embedUrl}
-                      title="Online Player"
-                      className="h-full w-full"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                      referrerPolicy="no-referrer"
-                    />
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const prev = clampEpisode(nowPlaying.page - 1, nowPlaying.pages)
+                          setEpisode(nowPlaying.bvid, prev, nowPlaying.pages)
+                          playSeriesEpisode(nowPlaying.bvid, prev)
+                          setNowPlaying({ ...nowPlaying, page: prev })
+                          scrollToPlayer()
+                        }}
+                        disabled={nowPlaying.page <= 1}
+                        className="kid-focus kid-btn kid-btn-soft flex-1 rounded-2xl px-4 text-sm font-extrabold text-gray-800 disabled:opacity-50"
+                      >
+                        上一集
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const next = clampEpisode(nowPlaying.page + 1, nowPlaying.pages)
+                          setEpisode(nowPlaying.bvid, next, nowPlaying.pages)
+                          playSeriesEpisode(nowPlaying.bvid, next)
+                          setNowPlaying({ ...nowPlaying, page: next })
+                          scrollToPlayer()
+                        }}
+                        disabled={nowPlaying.page >= nowPlaying.pages}
+                        className="kid-focus kid-btn kid-btn-primary flex-1 rounded-2xl px-4 text-sm font-extrabold text-white disabled:opacity-50"
+                      >
+                        下一集
+                      </button>
+                    </div>
                   </div>
-                </>
-              )}
-            </div>
-          </section>
-        </div>
+                ) : null}
+
+                <div className="min-h-0 flex-1 overflow-hidden rounded-2xl border border-pink-100 bg-black">
+                  <iframe
+                    src={embed.embedUrl}
+                    title="Online Player"
+                    className="h-full w-full"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    referrerPolicy="no-referrer"
+                  />
+                </div>
+              </>
+            )}
+          </div>
+        </section>
       </div>
     </main>
   )
