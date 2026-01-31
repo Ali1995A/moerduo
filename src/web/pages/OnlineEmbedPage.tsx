@@ -265,7 +265,7 @@ export default function OnlineEmbedPage() {
 
   return (
     <main className="h-full w-full p-4 pb-[calc(env(safe-area-inset-bottom)+12px)]">
-      <div className="h-full w-full grid min-h-0 gap-4 md:grid-cols-[1fr_640px]">
+      <div className="h-full w-full grid min-h-0 gap-4 md:grid-cols-[0.7fr_1.3fr]">
         <section className="min-h-0 overflow-auto">
           <div className="kid-card p-4">
             <div className="text-sm font-extrabold text-gray-900">视频乐园</div>
