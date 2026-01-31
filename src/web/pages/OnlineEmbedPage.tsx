@@ -134,7 +134,7 @@ export default function OnlineEmbedPage() {
   const [series, setSeries] = useState<PresetSeries[]>([])
   const [episodeByBvid, setEpisodeByBvid] = useState<Record<string, number>>({})
   const [selectedBvid, setSelectedBvid] = useState<string | null>(null)
-  const [episodePicker, setEpisodePicker] = useState<{ bvid: string; value: number } | null>(null)
+  const [episodePickerBvid, setEpisodePickerBvid] = useState<string | null>(null)
   const pickerPanelRef = useRef<HTMLDivElement | null>(null)
   const pickerButtonRef = useRef<HTMLButtonElement | null>(null)
   const [nowPlaying, setNowPlaying] = useState<{
@@ -170,19 +170,19 @@ export default function OnlineEmbedPage() {
   }, [])
 
   useEffect(() => {
-    if (!episodePicker) return
+    if (!episodePickerBvid) return
 
     function onPointerDown(e: PointerEvent) {
       const t = e.target as Node | null
       if (!t) return
       if (pickerPanelRef.current?.contains(t)) return
       if (pickerButtonRef.current?.contains(t)) return
-      setEpisodePicker(null)
+      setEpisodePickerBvid(null)
     }
 
     document.addEventListener('pointerdown', onPointerDown, true)
     return () => document.removeEventListener('pointerdown', onPointerDown, true)
-  }, [episodePicker])
+  }, [episodePickerBvid])
 
   useEffect(() => {
     let canceled = false
@@ -300,7 +300,7 @@ export default function OnlineEmbedPage() {
                   const padded = String(page).padStart(3, '0')
                   const selected = selectedBvid === s.bvid
                   const pinyin = makePinyinTip(s.title)
-                  const pickerOpen = episodePicker?.bvid === s.bvid
+                  const pickerOpen = episodePickerBvid === s.bvid
                   return (
                     <div
                       key={s.bvid}
@@ -348,9 +348,7 @@ export default function OnlineEmbedPage() {
                             onClick={(e) => {
                               e.stopPropagation()
                               setSelectedBvid(s.bvid)
-                              setEpisodePicker((cur) =>
-                                cur?.bvid === s.bvid ? null : { bvid: s.bvid, value: clampEpisode(page, s.pages) },
-                              )
+                              setEpisodePickerBvid((cur) => (cur === s.bvid ? null : s.bvid))
                             }}
                             className="kid-focus kid-card kid-pill px-4 py-2 text-sm font-extrabold text-gray-800"
                             aria-label={`选择集数：当前第 ${padded} 集`}
@@ -363,56 +361,27 @@ export default function OnlineEmbedPage() {
                               ref={pickerPanelRef}
                               role="dialog"
                               aria-label="选择集数"
-                              className="kid-card absolute left-0 top-[calc(100%+8px)] z-20 w-[min(520px,calc(100vw-64px))] p-3"
+                              className="kid-card absolute left-0 top-[calc(100%+8px)] z-20 w-40 max-w-[calc(100vw-64px)] p-3"
                               onClick={(e) => e.stopPropagation()}
                             >
                               <div className="flex items-center justify-between gap-2">
-                                <div className="text-sm font-extrabold text-gray-900">选第几集</div>
+                                <div className="text-sm font-extrabold text-gray-900">选集</div>
                                 <button
                                   type="button"
                                   className="kid-focus kid-btn kid-btn-soft w-10 rounded-2xl text-lg font-extrabold text-gray-800"
-                                  onClick={() => setEpisodePicker(null)}
+                                  onClick={() => setEpisodePickerBvid(null)}
                                   aria-label="关闭"
                                 >
                                   ×
                                 </button>
                               </div>
 
-                              <div className="mt-3">
-                                <div className="flex items-center justify-between text-xs font-semibold text-gray-600">
-                                  <span>滑动选择</span>
-                                  <span>
-                                    第 {String(episodePicker?.value ?? page).padStart(3, '0')} 集 / 共 {s.pages} 集
-                                  </span>
-                                </div>
-                                <input
-                                  type="range"
-                                  min={1}
-                                  max={s.pages}
-                                  step={1}
-                                  value={episodePicker?.value ?? page}
-                                  onChange={(e) => {
-                                    const n = Number(e.target.value)
-                                    setEpisodePicker((cur) => (cur ? { ...cur, value: n } : cur))
-                                  }}
-                                  className="mt-2 w-full accent-pink-500"
-                                />
-                                <button
-                                  type="button"
-                                  className="kid-focus kid-btn kid-btn-primary mt-2 w-full rounded-2xl px-4 text-sm font-extrabold text-white"
-                                  onClick={() => {
-                                    const n = clampEpisode(episodePicker?.value ?? page, s.pages)
-                                    setEpisode(s.bvid, n, s.pages)
-                                    setEpisodePicker(null)
-                                  }}
-                                >
-                                  确定
-                                </button>
+                              <div className="mt-2 text-xs font-semibold text-gray-600">
+                                当前 {padded} / 共 {String(s.pages).padStart(3, '0')}
                               </div>
 
-                              <div className="mt-3 text-xs font-semibold text-gray-600">或者点一个数字</div>
-                              <div className="kid-scroll mt-2 max-h-56 rounded-2xl border border-pink-100 bg-white/70 p-2">
-                                <div className="grid grid-cols-6 gap-2">
+                              <div className="kid-scroll mt-2 max-h-72 rounded-2xl border border-pink-100 bg-white/70 p-2">
+                                <div className="flex flex-col gap-2">
                                   {Array.from({ length: s.pages }, (_, i) => i + 1).map((n) => {
                                     const active = n === page
                                     return (
@@ -420,12 +389,12 @@ export default function OnlineEmbedPage() {
                                         key={n}
                                         type="button"
                                         className={[
-                                          'kid-focus kid-btn kid-btn-soft rounded-2xl px-0 py-2 text-xs font-extrabold',
+                                          'kid-focus kid-btn kid-btn-soft w-full rounded-2xl px-0 py-2 text-sm font-extrabold',
                                           active ? 'bg-pink-50 text-pink-700' : 'text-gray-800',
                                         ].join(' ')}
                                         onClick={() => {
                                           setEpisode(s.bvid, n, s.pages)
-                                          setEpisodePicker(null)
+                                          setEpisodePickerBvid(null)
                                         }}
                                       >
                                         {String(n).padStart(3, '0')}
