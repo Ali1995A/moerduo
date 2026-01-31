@@ -110,6 +110,7 @@ function makePinyinTip(title: string): string | null {
   if (normalized.includes('彼得兔')) return 'bǐ dé tù'
   if (normalized.includes('小学数学')) return 'xiǎo xué shù xué'
   if (normalized.includes('小学英语')) return 'xiǎo xué yīng yǔ'
+  if (normalized.includes('儿童百科') || normalized.includes('科普动画')) return 'ér tóng bǎi kē kē pǔ'
   if (normalized.includes('物理')) return 'wù lǐ'
   if (normalized.includes('上下五千年')) return 'shàng xià wǔ qiān nián'
   if (normalized.includes('新概念')) return 'xīn gài niàn'
