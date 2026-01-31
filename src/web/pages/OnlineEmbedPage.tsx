@@ -264,9 +264,9 @@ export default function OnlineEmbedPage() {
   }
 
   return (
-    <main className="h-full w-full p-4 pb-[calc(env(safe-area-inset-bottom)+12px)]">
-      <div className="h-full w-full grid min-h-0 gap-4 md:grid-cols-[0.7fr_1.3fr]">
-        <section className="min-h-0 overflow-auto">
+    <main className="w-full p-4 pb-[calc(env(safe-area-inset-bottom)+12px)] md:h-[calc(100dvh-72px)] md:overflow-hidden md:pb-4">
+      <div className="grid min-h-0 gap-4 md:h-full md:grid-cols-[0.7fr_1.3fr]">
+        <section className="kid-scroll min-h-0">
           <div className="kid-card p-4">
             <div className="text-sm font-extrabold text-gray-900">视频乐园</div>
             <div className="mt-1 text-xs font-semibold text-gray-600">点一个合集的“播放”，就能在右边看视频。</div>
@@ -386,7 +386,7 @@ export default function OnlineEmbedPage() {
           </div>
         </section>
 
-        <section ref={playerRef} className="min-h-0">
+        <section ref={playerRef} className="min-h-0 md:h-full">
           <div
             className={[
               'kid-card flex h-full min-h-0 flex-col p-3',
