@@ -104,6 +104,8 @@ function makePinyinTip(title: string): string | null {
   // Minimal built-in pinyin tips for the most common UI words.
   const normalized = title.replace(/\s+/g, '').toLowerCase()
   if (normalized.includes('数字积木')) return 'shù zì jī mù'
+  if (normalized.includes('数字方块')) return 'shù zì fāng kuài'
+  if (normalized.includes('数字对比')) return 'shù zì duì bǐ'
   if (normalized.includes('地理大百科')) return 'dì lǐ dà bǎi kē'
   if (normalized.includes('彼得兔')) return 'bǐ dé tù'
   if (normalized.includes('小学英语')) return 'xiǎo xué yīng yǔ'
