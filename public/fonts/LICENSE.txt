@@ -1,6 +1,6 @@
 Noto Sans font
 
-This repository includes a bundled copy of the Noto Sans font (public/fonts/pinyin.woff2),
+This repository includes bundled Noto Sans font files (public/fonts/pinyin-latin.woff2, public/fonts/pinyin-latin-ext.woff2),
 licensed under the SIL Open Font License, Version 1.1 (OFL-1.1).
 
 License: SIL Open Font License 1.1
