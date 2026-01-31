@@ -97,6 +97,74 @@ function buildEmbed(url: string): { provider: 'youtube' | 'bilibili'; embedUrl: 
   return null
 }
 
+function toPinyinWithToneNumber(pinyin: string): string {
+  // Basic pinyin tone marks to tone numbers, keeps non-matching text as-is.
+  const map: Record<string, { base: string; tone: number }> = {
+    'ā': { base: 'a', tone: 1 },
+    'á': { base: 'a', tone: 2 },
+    'ǎ': { base: 'a', tone: 3 },
+    'à': { base: 'a', tone: 4 },
+    'ē': { base: 'e', tone: 1 },
+    'é': { base: 'e', tone: 2 },
+    'ě': { base: 'e', tone: 3 },
+    'è': { base: 'e', tone: 4 },
+    'ī': { base: 'i', tone: 1 },
+    'í': { base: 'i', tone: 2 },
+    'ǐ': { base: 'i', tone: 3 },
+    'ì': { base: 'i', tone: 4 },
+    'ō': { base: 'o', tone: 1 },
+    'ó': { base: 'o', tone: 2 },
+    'ǒ': { base: 'o', tone: 3 },
+    'ò': { base: 'o', tone: 4 },
+    'ū': { base: 'u', tone: 1 },
+    'ú': { base: 'u', tone: 2 },
+    'ǔ': { base: 'u', tone: 3 },
+    'ù': { base: 'u', tone: 4 },
+    'ǖ': { base: 'ü', tone: 1 },
+    'ǘ': { base: 'ü', tone: 2 },
+    'ǚ': { base: 'ü', tone: 3 },
+    'ǜ': { base: 'ü', tone: 4 },
+    'ń': { base: 'n', tone: 2 },
+    'ň': { base: 'n', tone: 3 },
+    'ǹ': { base: 'n', tone: 4 },
+    'ḿ': { base: 'm', tone: 2 },
+  }
+  const words = pinyin
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+  return words
+    .map((w) => {
+      let tone = 0
+      let out = ''
+      for (const ch of w) {
+        const m = map[ch]
+        if (m) {
+          out += m.base
+          tone = m.tone
+        } else {
+          out += ch
+        }
+      }
+      if (tone > 0) out += String(tone)
+      return out
+    })
+    .join(' ')
+}
+
+function makePinyinTip(title: string): string | null {
+  // Minimal built-in pinyin tips for the most common UI words.
+  const normalized = title.replace(/\s+/g, '').toLowerCase()
+  if (normalized.includes('数字积木')) return 'shù zì jī mù'
+  if (normalized.includes('地理大百科')) return 'dì lǐ dà bǎi kē'
+  if (normalized.includes('彼得兔')) return 'bǐ dé tù'
+  if (normalized.includes('小学英语')) return 'xiǎo xué yīng yǔ'
+  if (normalized.includes('物理')) return 'wù lǐ'
+  if (normalized.includes('上下五千年')) return 'shàng xià wǔ qiān nián'
+  if (normalized.includes('新概念')) return 'xīn gài niàn'
+  return null
+}
+
 export default function OnlineEmbedPage() {
   const [input, setInput] = useState('')
   const [presets, setPresets] = useState<PresetVideo[]>([])
@@ -305,6 +373,8 @@ export default function OnlineEmbedPage() {
                   const page = getEpisode(s.bvid)
                   const padded = String(page).padStart(3, '0')
                   const selected = selectedSeries?.bvid === s.bvid
+                  const pinyin = makePinyinTip(s.title)
+                  const pinyinNumber = pinyin ? toPinyinWithToneNumber(pinyin) : null
                   return (
                     <div
                       key={s.bvid}
@@ -321,7 +391,15 @@ export default function OnlineEmbedPage() {
                     >
                       <div className="min-w-0">
                         <div className="truncate text-sm font-extrabold text-gray-900">{s.title}</div>
-                        <div className="mt-0.5 text-xs font-semibold text-gray-500">{s.pages} 集</div>
+                        <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-semibold text-gray-500">
+                          <span>{s.pages} 集</span>
+                          {pinyin ? (
+                            <span className="rounded-full bg-pink-50 px-2 py-0.5 font-extrabold text-pink-700">
+                              {pinyin}
+                              {pinyinNumber ? `（${pinyinNumber}）` : ''}
+                            </span>
+                          ) : null}
+                        </div>
                       </div>
 
                       <div className="flex flex-wrap items-center gap-2">
