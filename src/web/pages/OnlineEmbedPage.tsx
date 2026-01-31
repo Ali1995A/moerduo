@@ -129,7 +129,7 @@ function normalizePinyinForDisplay(input: string): string {
 
 export default function OnlineEmbedPage() {
   const [input, setInput] = useState('')
-  const [presets, setPresets] = useState<PresetVideo[]>([])
+  const [, setPresets] = useState<PresetVideo[]>([])
   const [series, setSeries] = useState<PresetSeries[]>([])
   const [episodeByBvid, setEpisodeByBvid] = useState<Record<string, number>>({})
   const [selectedBvid, setSelectedBvid] = useState<string | null>(null)
@@ -269,7 +269,7 @@ export default function OnlineEmbedPage() {
         <section className="min-h-0 overflow-auto">
           <div className="kid-card p-4">
             <div className="text-sm font-extrabold text-gray-900">视频乐园</div>
-            <div className="mt-1 text-xs font-semibold text-gray-600">点下面的小卡片就能看（B 站/YouTube）。</div>
+            <div className="mt-1 text-xs font-semibold text-gray-600">点一个合集的“播放”，就能在右边看视频。</div>
 
             <div className="mt-4 kid-card p-4">
               <div className="text-sm font-extrabold text-gray-900">视频合集</div>
@@ -352,44 +352,6 @@ export default function OnlineEmbedPage() {
                         </button>
                       </div>
                     </div>
-                  )
-                })}
-              </div>
-            </div>
-
-            <div className="mt-4 kid-card p-4">
-              <div className="text-sm font-extrabold text-gray-900">小卡片</div>
-              <div className="mt-1 text-xs font-semibold text-gray-600">点一下就播放。</div>
-              <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                {presets.slice(0, 6).map((p, idx) => {
-                  const disabled = !p.url.trim()
-                  return (
-                    <button
-                      key={`${idx}:${p.title}`}
-                      type="button"
-                      onClick={() => {
-                        if (disabled) return
-                        setInput(p.url)
-                        setNowPlaying(null)
-                        scrollToPlayer()
-                      }}
-                      className={[
-                        'kid-focus kid-btn w-full text-left',
-                        'kid-card px-4 py-3 transition-colors',
-                        disabled ? 'opacity-60' : 'hover:bg-white',
-                      ].join(' ')}
-                      disabled={disabled}
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <div className="truncate text-sm font-extrabold text-gray-900">{p.title}</div>
-                          <div className="mt-0.5 truncate text-xs font-semibold text-gray-500">
-                            {disabled ? '（等待配置链接）' : '点我播放'}
-                          </div>
-                        </div>
-                        <div className="shrink-0 text-base text-pink-500">🎬</div>
-                      </div>
-                    </button>
                   )
                 })}
               </div>
