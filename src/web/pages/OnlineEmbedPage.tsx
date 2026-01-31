@@ -353,7 +353,7 @@ export default function OnlineEmbedPage() {
                         <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-semibold text-gray-500">
                           <span>{s.pages} 集</span>
                           {pinyin ? (
-                            <span className="pinyin-text rounded-full bg-pink-50 px-2 py-0.5 font-extrabold text-pink-700">
+                            <span className="pinyin-text rounded-full bg-pink-50 px-2 py-0.5 font-bold text-pink-700">
                               {pinyin}
                             </span>
                           ) : null}
