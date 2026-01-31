@@ -64,9 +64,9 @@ function getBilibiliEmbed(url: string): string | null {
     if (u.hostname !== 'player.bilibili.com') return null
     if (!u.pathname.endsWith('/player.html')) return null
     const bvid = u.searchParams.get('bvid')
-    const page = u.searchParams.get('p') || u.searchParams.get('page') || '1'
+    const p = u.searchParams.get('p') || u.searchParams.get('page') || '1'
     if (!bvid) return null
-    return `https://player.bilibili.com/player.html?bvid=${encodeURIComponent(bvid)}&page=${encodeURIComponent(page)}&high_quality=1&danmaku=0&autoplay=0&isOutside=true`
+    return `https://player.bilibili.com/player.html?bvid=${encodeURIComponent(bvid)}&p=${encodeURIComponent(p)}&high_quality=1&danmaku=0&autoplay=0&isOutside=true`
   } catch {
     return null
   }
@@ -90,7 +90,7 @@ function buildEmbed(url: string): { provider: 'youtube' | 'bilibili'; embedUrl: 
   if (bv) {
     return {
       provider: 'bilibili',
-      embedUrl: `https://player.bilibili.com/player.html?bvid=${encodeURIComponent(bv)}&page=1&high_quality=1&danmaku=0&autoplay=0`,
+      embedUrl: `https://player.bilibili.com/player.html?bvid=${encodeURIComponent(bv)}&p=1&high_quality=1&danmaku=0&autoplay=0&isOutside=true`,
     }
   }
 
@@ -261,7 +261,7 @@ export default function OnlineEmbedPage() {
 
   function playSeriesEpisode(bvid: string, page: number) {
     const p = Math.max(1, Math.floor(page))
-    const url = `https://player.bilibili.com/player.html?isOutside=true&bvid=${encodeURIComponent(bvid)}&page=${encodeURIComponent(
+    const url = `https://player.bilibili.com/player.html?isOutside=true&bvid=${encodeURIComponent(bvid)}&p=${encodeURIComponent(
       String(p),
     )}&high_quality=1&danmaku=0&autoplay=0`
     setInput(url)
