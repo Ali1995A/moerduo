@@ -114,9 +114,14 @@ function makePinyinTip(title: string): string | null {
 }
 
 function normalizePinyinForDisplay(input: string): string {
-  // Some sources use IPA letters like ɑ (U+0251) and ɡ (U+0261) plus combining tone marks.
-  // Convert to normal Latin and normalize to NFC so a + combining becomes precomposed ā/á/ǎ/à.
-  return input.replace(/\u0251/g, 'a').replace(/\u0261/g, 'g').normalize('NFC')
+  // Render "a" as IPA open a (ɑ) with combining tone marks, e.g. ɑ̄ ɑ́ ɑ̌ ɑ̀.
+  // This keeps the visual style consistent on iPad/WeChat and matches the desired output.
+  return input
+    .replace(/ā/g, 'ɑ\u0304')
+    .replace(/á/g, 'ɑ\u0301')
+    .replace(/ǎ/g, 'ɑ\u030C')
+    .replace(/à/g, 'ɑ\u0300')
+    .replace(/a/g, 'ɑ')
 }
 
 export default function OnlineEmbedPage() {
