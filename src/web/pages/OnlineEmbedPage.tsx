@@ -63,10 +63,13 @@ function getBilibiliEmbed(url: string): string | null {
     const u = new URL(url)
     if (u.hostname !== 'player.bilibili.com') return null
     if (!u.pathname.endsWith('/player.html')) return null
-    const bvid = u.searchParams.get('bvid')
-    const p = u.searchParams.get('p') || u.searchParams.get('page') || '1'
-    if (!bvid) return null
-    return `https://player.bilibili.com/player.html?bvid=${encodeURIComponent(bvid)}&p=${encodeURIComponent(p)}&high_quality=1&danmaku=0&autoplay=0&isOutside=true`
+    // Keep original query params (including aid/cid/p) to ensure correct episode selection.
+    const qp = u.searchParams
+    if (!qp.get('isOutside')) qp.set('isOutside', 'true')
+    if (!qp.get('high_quality')) qp.set('high_quality', '1')
+    if (!qp.get('danmaku')) qp.set('danmaku', '0')
+    if (!qp.get('autoplay')) qp.set('autoplay', '0')
+    return `https://player.bilibili.com/player.html?${qp.toString()}`
   } catch {
     return null
   }
@@ -259,12 +262,24 @@ export default function OnlineEmbedPage() {
     setEpisodeByBvid((prev) => ({ ...prev, [bvid]: nextPage }))
   }
 
-  function playSeriesEpisode(bvid: string, page: number) {
+  function buildBilibiliSeriesUrl(s: PresetSeries, page: number): string {
     const p = Math.max(1, Math.floor(page))
-    const url = `https://player.bilibili.com/player.html?isOutside=true&bvid=${encodeURIComponent(bvid)}&p=${encodeURIComponent(
-      String(p),
-    )}&high_quality=1&danmaku=0&autoplay=0`
-    setInput(url)
+    const cid = s.cids?.[p - 1]
+    const aid = s.aid
+    const params = new URLSearchParams()
+    params.set('isOutside', 'true')
+    params.set('high_quality', '1')
+    params.set('danmaku', '0')
+    params.set('autoplay', '0')
+    params.set('bvid', s.bvid)
+    params.set('p', String(p))
+    if (aid) params.set('aid', String(aid))
+    if (cid) params.set('cid', String(cid))
+    return `https://player.bilibili.com/player.html?${params.toString()}`
+  }
+
+  function playSeriesEpisode(s: PresetSeries, page: number) {
+    setInput(buildBilibiliSeriesUrl(s, page))
   }
 
   function scrollToPlayer() {
@@ -355,7 +370,7 @@ export default function OnlineEmbedPage() {
                       onClick={() => {
                         if (!selectedSeries) return
                         const p = clampEpisode(getEpisode(selectedSeries.bvid), selectedSeries.pages)
-                        playSeriesEpisode(selectedSeries.bvid, p)
+                        playSeriesEpisode(selectedSeries, p)
                         setNowPlaying({ title: selectedSeries.title, bvid: selectedSeries.bvid, page: p, pages: selectedSeries.pages })
                         scrollToPlayer()
                       }}
@@ -437,7 +452,7 @@ export default function OnlineEmbedPage() {
                             e.stopPropagation()
                             const p = clampEpisode(getEpisode(s.bvid), s.pages)
                             setSelectedBvid(s.bvid)
-                            playSeriesEpisode(s.bvid, p)
+                            playSeriesEpisode(s, p)
                             setNowPlaying({ title: s.title, bvid: s.bvid, page: p, pages: s.pages })
                             scrollToPlayer()
                           }}
@@ -568,13 +583,14 @@ export default function OnlineEmbedPage() {
                     <div className="flex items-center gap-2">
                       <button
                         type="button"
-                        onClick={() => {
-                          const prev = clampEpisode(nowPlaying.page - 1, nowPlaying.pages)
-                          setEpisode(nowPlaying.bvid, prev, nowPlaying.pages)
-                          playSeriesEpisode(nowPlaying.bvid, prev)
-                          setNowPlaying({ ...nowPlaying, page: prev })
-                          scrollToPlayer()
-                        }}
+                          onClick={() => {
+                            const prev = clampEpisode(nowPlaying.page - 1, nowPlaying.pages)
+                            setEpisode(nowPlaying.bvid, prev, nowPlaying.pages)
+                            const s = series.find((x) => x.bvid === nowPlaying.bvid)
+                            if (s) playSeriesEpisode(s, prev)
+                            setNowPlaying({ ...nowPlaying, page: prev })
+                            scrollToPlayer()
+                          }}
                         disabled={nowPlaying.page <= 1}
                         className="kid-focus kid-btn kid-btn-soft flex-1 rounded-2xl px-4 text-sm font-extrabold text-gray-800 disabled:opacity-50"
                       >
@@ -582,13 +598,14 @@ export default function OnlineEmbedPage() {
                       </button>
                       <button
                         type="button"
-                        onClick={() => {
-                          const next = clampEpisode(nowPlaying.page + 1, nowPlaying.pages)
-                          setEpisode(nowPlaying.bvid, next, nowPlaying.pages)
-                          playSeriesEpisode(nowPlaying.bvid, next)
-                          setNowPlaying({ ...nowPlaying, page: next })
-                          scrollToPlayer()
-                        }}
+                          onClick={() => {
+                            const next = clampEpisode(nowPlaying.page + 1, nowPlaying.pages)
+                            setEpisode(nowPlaying.bvid, next, nowPlaying.pages)
+                            const s = series.find((x) => x.bvid === nowPlaying.bvid)
+                            if (s) playSeriesEpisode(s, next)
+                            setNowPlaying({ ...nowPlaying, page: next })
+                            scrollToPlayer()
+                          }}
                         disabled={nowPlaying.page >= nowPlaying.pages}
                         className="kid-focus kid-btn kid-btn-primary flex-1 rounded-2xl px-4 text-sm font-extrabold text-white disabled:opacity-50"
                       >

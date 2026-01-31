@@ -7,6 +7,8 @@ export type PresetSeries = {
   title: string
   bvid: string
   pages: number
+  aid?: number
+  cids?: number[]
 }
 
 const fallback: PresetVideo[] = [
@@ -53,9 +55,24 @@ export async function loadPresetSeries(): Promise<PresetSeries[]> {
         const title = (v as any).title
         const bvid = (v as any).bvid
         const pages = (v as any).pages
+        const aid = (v as any).aid
+        const cids = (v as any).cids
         if (typeof title !== 'string' || typeof bvid !== 'string' || typeof pages !== 'number') return null
         if (!Number.isFinite(pages) || pages <= 0) return null
-        return { title, bvid, pages: Math.floor(pages) } satisfies PresetSeries
+        const parsedAid = typeof aid === 'number' && Number.isFinite(aid) ? Math.floor(aid) : undefined
+        const parsedCids = Array.isArray(cids)
+          ? cids
+              .map((n) => (typeof n === 'number' ? n : Number(n)))
+              .filter((n) => Number.isFinite(n) && n > 0)
+              .map((n) => Math.floor(n))
+          : undefined
+        return {
+          title,
+          bvid,
+          pages: Math.floor(pages),
+          aid: parsedAid,
+          cids: parsedCids && parsedCids.length > 0 ? parsedCids : undefined,
+        } satisfies PresetSeries
       })
       .filter(Boolean) as PresetSeries[]
     return list.length > 0 ? list : fallbackSeries
