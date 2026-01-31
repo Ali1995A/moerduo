@@ -352,6 +352,21 @@ export default function OnlineEmbedPage() {
                         >
                           +
                         </button>
+
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            const p = clampEpisode(getEpisode(s.bvid), s.pages)
+                            setSelectedBvid(s.bvid)
+                            playSeriesEpisode(s.bvid, p)
+                            setNowPlaying({ title: s.title, bvid: s.bvid, page: p, pages: s.pages })
+                            scrollToPlayer()
+                          }}
+                          className="kid-focus kid-btn kid-btn-primary rounded-2xl px-5 text-sm font-extrabold text-white"
+                        >
+                          播放
+                        </button>
                       </div>
                     </div>
                   )
