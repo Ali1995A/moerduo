@@ -103,6 +103,9 @@ function buildEmbed(url: string): { provider: 'youtube' | 'bilibili'; embedUrl: 
 function makePinyinTip(title: string): string | null {
   // Minimal built-in pinyin tips for the most common UI words.
   const normalized = title.replace(/\s+/g, '').toLowerCase()
+  if (normalized.includes('数字积木第6季') || normalized.includes('数字积木第六季')) return 'shù zì jī mù dì liù jì'
+  if (normalized.includes('数字积木第7季') || normalized.includes('数字积木第七季')) return 'shù zì jī mù dì qī jì'
+  if (normalized.includes('数字积木第8季') || normalized.includes('数字积木第八季')) return 'shù zì jī mù dì bā jì'
   if (normalized.includes('数字积木')) return 'shù zì jī mù'
   if (normalized.includes('数字方块')) return 'shù zì fāng kuài'
   if (normalized.includes('数字对比')) return 'shù zì duì bǐ'
