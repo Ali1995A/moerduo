@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { loadPresetSeries, loadPresetVideos, type PresetSeries, type PresetVideo } from '../online/presets'
+import { loadPresetSeries, type PresetSeries } from '../online/presets'
 
 function readCookie(name: string): string | null {
   if (typeof document === 'undefined') return null
@@ -155,7 +155,6 @@ function normalizePinyinForDisplay(input: string): string {
 
 export default function OnlineEmbedPage() {
   const [input, setInput] = useState('')
-  const [presets, setPresets] = useState<PresetVideo[]>([])
   const [series, setSeries] = useState<PresetSeries[]>([])
   const [episodeByBvid, setEpisodeByBvid] = useState<Record<string, number>>({})
   const [selectedSeriesId, setSelectedSeriesId] = useState<string | null>(null)
@@ -210,10 +209,6 @@ export default function OnlineEmbedPage() {
 
   useEffect(() => {
     let canceled = false
-    loadPresetVideos().then((v) => {
-      if (canceled) return
-      setPresets(v)
-    })
     loadPresetSeries().then((s) => {
       if (canceled) return
       setSeries(s)
@@ -242,16 +237,6 @@ export default function OnlineEmbedPage() {
 
   const normalizedInput = useMemo(() => normalizeUrl(input), [input])
   const embed = useMemo(() => buildEmbed(normalizedInput), [normalizedInput])
-  const presetGroups = useMemo(() => {
-    const groups = new Map<string, PresetVideo[]>()
-    for (const item of presets) {
-      const key = item.group?.trim() || '精选视频'
-      const list = groups.get(key) ?? []
-      list.push(item)
-      groups.set(key, list)
-    }
-    return Array.from(groups.entries()).map(([title, items]) => ({ title, items }))
-  }, [presets])
 
   function clampEpisode(page: number, pages: number): number {
     const max = Math.max(1, Math.floor(pages))
@@ -332,68 +317,6 @@ export default function OnlineEmbedPage() {
           <div className="kid-card p-4">
             <div className="text-sm font-extrabold text-gray-900">视频乐园</div>
             <div className="mt-1 text-xs font-semibold text-gray-600">点一个合集的“播放”，就能在右边看视频。</div>
-
-            {presets.length > 0 ? (
-              <div className="mt-4 kid-card p-4">
-                <div className="text-sm font-extrabold text-gray-900">精选视频</div>
-                <div className="mt-1 text-xs font-semibold text-gray-600">单集视频（B站/爱奇艺等）。</div>
-
-                <div className="mt-3 flex flex-col gap-4">
-                  {presetGroups.map((g) => {
-                    const groupPinyin = makePinyinTip(g.title)
-                    return (
-                      <div key={g.title}>
-                        <div className="flex items-center gap-2">
-                          <div className="text-sm font-extrabold text-gray-900">{g.title}</div>
-                          {groupPinyin ? (
-                            <span className="pinyin-text rounded-full bg-pink-50 px-2 py-0.5 text-xs font-bold text-pink-700">
-                              {normalizePinyinForDisplay(groupPinyin)}
-                            </span>
-                          ) : null}
-                        </div>
-
-                        <div className="mt-2 flex flex-col gap-2">
-                          {g.items.map((v) => {
-                            const pinyin = makePinyinTip(v.title)
-                            return (
-                              <div
-                                key={`${g.title}-${v.title}-${v.url}`}
-                                className="kid-card flex flex-col gap-2 p-3 sm:flex-row sm:items-center sm:justify-between"
-                              >
-                                <div className="min-w-0">
-                                  <div className="truncate text-sm font-extrabold text-gray-900">{v.title}</div>
-                                  {pinyin ? (
-                                    <div className="mt-0.5 text-xs font-semibold text-gray-500">
-                                      <span className="pinyin-text rounded-full bg-pink-50 px-2 py-0.5 font-bold text-pink-700">
-                                        {normalizePinyinForDisplay(pinyin)}
-                                      </span>
-                                    </div>
-                                  ) : null}
-                                </div>
-
-                                <div className="flex items-center gap-2">
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setInput(v.url)
-                                      setNowPlaying({ kind: 'video', title: v.title })
-                                      scrollToPlayer()
-                                    }}
-                                    className="kid-focus kid-btn kid-btn-primary rounded-2xl px-5 text-sm font-extrabold text-white"
-                                  >
-                                    播放
-                                  </button>
-                                </div>
-                              </div>
-                            )
-                          })}
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-            ) : null}
 
             <div className="mt-4 kid-card p-4">
               <div className="text-sm font-extrabold text-gray-900">视频合集</div>
