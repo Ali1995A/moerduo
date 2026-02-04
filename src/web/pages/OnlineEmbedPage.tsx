@@ -123,7 +123,15 @@ function makePinyinTip(title: string): string | null {
   if (normalized.includes('奇妙萌可')) return 'qí miào méng kě'
   if (normalized.includes('蜡笔小新第10季') || normalized.includes('蜡笔小新第十季')) return 'là bǐ xiǎo xīn dì shí jì'
   if (normalized.includes('蜡笔小新第9季') || normalized.includes('蜡笔小新第九季')) return 'là bǐ xiǎo xīn dì jiǔ jì'
+  if (normalized.includes('蜡笔小新第7季') || normalized.includes('蜡笔小新第七季')) return 'là bǐ xiǎo xīn dì qī jì'
   if (normalized.includes('蜡笔小新')) return 'là bǐ xiǎo xīn'
+  if (normalized.includes('哆啦a梦') || normalized.includes('哆啦a夢')) return 'duō la a mèng'
+  if (normalized.includes('哆啦a')) return 'duō la a'
+  if (normalized.includes('哆啦')) return 'duō la'
+  if (normalized.includes('猫和老鼠') || normalized.includes('汤姆与杰瑞')) return 'māo hé lǎo shǔ'
+  if (normalized.includes('米老鼠和唐老鸭')) return 'mǐ lǎo shǔ hé táng lǎo yā'
+  if (normalized.includes('米老鼠')) return 'mǐ lǎo shǔ'
+  if (normalized.includes('唐老鸭')) return 'táng lǎo yā'
   if (normalized.includes('超级马里奥合集')) return 'chāo jí mǎ lǐ ào hé jí'
   if (normalized.includes('马里奥兄弟')) return 'mǎ lǐ ào xiōng dì'
   if (normalized.includes('超级马里奥')) return 'chāo jí mǎ lǐ ào'
@@ -504,7 +512,7 @@ export default function OnlineEmbedPage() {
         <section ref={playerRef} className="min-h-0 md:h-full">
           <div
             className={[
-              'kid-card flex h-full min-h-0 flex-col p-3',
+              'kid-card flex min-h-0 flex-col p-3 md:h-full',
               isTheater ? 'fixed inset-0 z-50 m-0 rounded-none p-4 pt-6 bg-white/95 backdrop-blur' : '',
             ].join(' ')}
           >
@@ -612,7 +620,10 @@ export default function OnlineEmbedPage() {
                   </div>
                 ) : null}
 
-                <div ref={playerBoxRef} className="min-h-0 flex-1 overflow-hidden rounded-2xl border border-pink-100 bg-black">
+                <div
+                  ref={playerBoxRef}
+                  className="h-[56vw] min-h-[220px] overflow-hidden rounded-2xl border border-pink-100 bg-black md:h-auto md:min-h-0 md:flex-1"
+                >
                   <iframe
                     src={embed.embedUrl}
                     title="Online Player"
