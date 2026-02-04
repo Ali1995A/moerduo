@@ -7,6 +7,56 @@
     "cids": [35714369900,35714370108,35714370187,35714370211,35714370527,35714370554,35714370593,35714370826,35714370848,35714370871,35714370916,35714371040,35714371151,35714371178,35714371201,35714371283,35714371307,35714371579,35714433117,35714433190,35714433230,35714433468,35714433327,35714433530,35714433664,35714433690,35714433718,35714433970,35714433933,35714433952,35714434166,35714434215,35714434346,35714434395,35714434601,35714434535,35714434447,35714434690,35714434900,35714434821,35714434843,35714435099,35714435142,35714435388,35714435568,35714435511,35714435533,35714435727,35714435889,35714435977]
   },
   {
+    "id": "mario",
+    "title": "超级马里奥",
+    "pages": 9,
+    "items": [
+      {
+        "title": "当马里奥的世界充满了奶酪【King Rabbit】",
+        "url": "https://player.bilibili.com/player.html?isOutside=true&aid=115960929328722&bvid=BV1dazvBREmV&cid=35625175433&p=1&high_quality=1&danmaku=0&autoplay=0"
+      },
+      {
+        "title": "当马里奥的世界充满了零食【Levelup】",
+        "url": "https://player.bilibili.com/player.html?isOutside=true&aid=114604021653027&bvid=BV1MT7MzaEDd&cid=30255744521&p=1&high_quality=1&danmaku=0&autoplay=0"
+      },
+      {
+        "title": "当马里奥在各种奇异的地形上冒险【Level up】",
+        "url": "https://player.bilibili.com/player.html?isOutside=true&aid=114844439155228&bvid=BV1PBuczUEUu&cid=31010392780&p=1&high_quality=1&danmaku=0&autoplay=0"
+      },
+      {
+        "title": "超级马里奥超有趣的动画合集！（7）",
+        "url": "https://player.bilibili.com/player.html?isOutside=true&aid=114940455162911&bvid=BV1AihcziE3E&cid=31372214712&p=1&high_quality=1&danmaku=0&autoplay=0"
+      },
+      {
+        "title": "当马里奥碰到的东西都变成史莱姆【King Rabbit】",
+        "url": "https://player.bilibili.com/player.html?isOutside=true&aid=115716955117791&bvid=BV1X1meBiE7z&cid=34732114553&p=1&high_quality=1&danmaku=0&autoplay=0"
+      },
+      {
+        "title": "超级马里奥游戏和乐高的关卡结局差异",
+        "url": "https://player.bilibili.com/player.html?isOutside=true&aid=114962148168926&bvid=BV1hhhTzPEki&cid=31452299555&p=1&high_quality=1&danmaku=0&autoplay=0"
+      },
+      {
+        "title": "每次马里奥跳跃时，他都会变得更宽、更聪明、更高（还有更多！）",
+        "url": "https://player.bilibili.com/player.html?isOutside=true&aid=115603272696305&bvid=BV1JoU3B9EUr&cid=34224802122&p=1&high_quality=1&danmaku=0&autoplay=0"
+      },
+      {
+        "title": "当马里奥碰到的东西会变化状态2【King Rabbit】",
+        "url": "https://player.bilibili.com/player.html?isOutside=true&aid=114744866380077&bvid=BV175KDzqEiP&cid=30695952195&p=1&high_quality=1&danmaku=0&autoplay=0"
+      },
+      {
+        "title": "最强融合植物VS马里奥兄弟（植物大战僵尸版）",
+        "url": "https://player.bilibili.com/player.html?isOutside=true&aid=113540916643374&bvid=BV1KEBeYVE18&cid=26990873466&p=1&high_quality=1&danmaku=0&autoplay=0"
+      }
+    ]
+  },
+  {
+    "title": "奇妙萌可",
+    "bvid": "BV18168BvEB7",
+    "pages": 16,
+    "aid": 115997067515436,
+    "cids": [35759787413,35759850304,35759851974,35759915377,35759916833,35759980579,35759983504,35760047921,35760112319,35760115159,35760179202,35760242778,35760308278,35760310605,35760312006,35760374574]
+  },
+  {
     "title": "数字积木第6季",
     "bvid": "BV19B6EB6EjM",
     "pages": 2,

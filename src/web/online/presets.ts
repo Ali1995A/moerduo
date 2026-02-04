@@ -4,24 +4,27 @@ export type PresetVideo = {
   group?: string
 }
 
-export type PresetSeries = {
+export type PresetSeriesItem = {
   title: string
-  bvid: string
-  pages: number
-  aid?: number
-  cids?: number[]
+  url: string
 }
 
-const fallback: PresetVideo[] = [
-  { title: '小朋友最爱的视频 1（待配置）', url: '' },
-  { title: '小朋友最爱的视频 2（待配置）', url: '' },
-  { title: '小朋友最爱的视频 3（待配置）', url: '' },
-  { title: '小朋友最爱的视频 4（待配置）', url: '' },
-  { title: '小朋友最爱的视频 5（待配置）', url: '' },
-  { title: '小朋友最爱的视频 6（待配置）', url: '' },
-]
+export type PresetSeries = {
+  id: string
+  title: string
+  pages: number
+  kind: 'bilibili' | 'custom'
+  bvid?: string
+  aid?: number
+  cids?: number[]
+  items?: PresetSeriesItem[]
+}
 
-const fallbackSeries: PresetSeries[] = [{ title: '新概念英语视频合集', bvid: 'BV1WG39zPETL', pages: 138 }]
+const fallback: PresetVideo[] = []
+
+const fallbackSeries: PresetSeries[] = [
+  { id: 'BV1WG39zPETL', title: '新概念英语视频合集', kind: 'bilibili', bvid: 'BV1WG39zPETL', pages: 138 },
+]
 
 export async function loadPresetVideos(): Promise<PresetVideo[]> {
   try {
@@ -59,12 +62,50 @@ export async function loadPresetSeries(): Promise<PresetSeries[]> {
       .map((v) => {
         if (!v || typeof v !== 'object') return null
         const title = (v as any).title
-        const bvid = (v as any).bvid
         const pages = (v as any).pages
+
+        if (typeof title !== 'string') return null
+
+        const rawBvid = (v as any).bvid
+        const rawItems = (v as any).items
+        const rawId = (v as any).id
+
+        // Custom series: { id, title, items: [{title,url}, ...] }
+        if (Array.isArray(rawItems)) {
+          const items = rawItems
+            .map((it: any) => {
+              if (!it || typeof it !== 'object') return null
+              const itTitle = it.title
+              const itUrl = it.url
+              if (typeof itTitle !== 'string' || typeof itUrl !== 'string') return null
+              return { title: itTitle, url: itUrl } satisfies PresetSeriesItem
+            })
+            .filter(Boolean) as PresetSeriesItem[]
+
+          if (items.length <= 0) return null
+          const parsedPages =
+            typeof pages === 'number' && Number.isFinite(pages) && pages > 0 ? Math.floor(pages) : items.length
+          const id =
+            typeof rawId === 'string' && rawId.trim()
+              ? rawId.trim()
+              : typeof title === 'string'
+                ? title.trim() || `custom-${items.length}`
+                : `custom-${items.length}`
+
+          return {
+            id,
+            title,
+            kind: 'custom',
+            pages: parsedPages,
+            items,
+          } satisfies PresetSeries
+        }
+
+        // Bilibili series: { title, bvid, pages, aid?, cids? }
+        if (typeof rawBvid !== 'string' || typeof pages !== 'number') return null
+        if (!Number.isFinite(pages) || pages <= 0) return null
         const aid = (v as any).aid
         const cids = (v as any).cids
-        if (typeof title !== 'string' || typeof bvid !== 'string' || typeof pages !== 'number') return null
-        if (!Number.isFinite(pages) || pages <= 0) return null
         const parsedAid = typeof aid === 'number' && Number.isFinite(aid) ? Math.floor(aid) : undefined
         const parsedCids = Array.isArray(cids)
           ? cids
@@ -72,9 +113,12 @@ export async function loadPresetSeries(): Promise<PresetSeries[]> {
               .filter((n) => Number.isFinite(n) && n > 0)
               .map((n) => Math.floor(n))
           : undefined
+
         return {
+          id: rawBvid,
           title,
-          bvid,
+          kind: 'bilibili',
+          bvid: rawBvid,
           pages: Math.floor(pages),
           aid: parsedAid,
           cids: parsedCids && parsedCids.length > 0 ? parsedCids : undefined,

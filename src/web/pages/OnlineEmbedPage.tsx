@@ -158,12 +158,12 @@ export default function OnlineEmbedPage() {
   const [presets, setPresets] = useState<PresetVideo[]>([])
   const [series, setSeries] = useState<PresetSeries[]>([])
   const [episodeByBvid, setEpisodeByBvid] = useState<Record<string, number>>({})
-  const [selectedBvid, setSelectedBvid] = useState<string | null>(null)
-  const [episodePickerBvid, setEpisodePickerBvid] = useState<string | null>(null)
+  const [selectedSeriesId, setSelectedSeriesId] = useState<string | null>(null)
+  const [episodePickerSeriesId, setEpisodePickerSeriesId] = useState<string | null>(null)
   const pickerPanelRef = useRef<HTMLDivElement | null>(null)
   const pickerButtonRef = useRef<HTMLButtonElement | null>(null)
   const [nowPlaying, setNowPlaying] = useState<
-    | { kind: 'series'; title: string; bvid: string; page: number; pages: number }
+    | { kind: 'series'; title: string; seriesId: string; page: number; pages: number }
     | { kind: 'video'; title: string }
     | null
   >(null)
@@ -190,23 +190,23 @@ export default function OnlineEmbedPage() {
       }
     }
     const rawSelected = readCookie(COOKIE_SELECTED)
-    if (rawSelected) setSelectedBvid(rawSelected)
+    if (rawSelected) setSelectedSeriesId(rawSelected)
   }, [])
 
   useEffect(() => {
-    if (!episodePickerBvid) return
+    if (!episodePickerSeriesId) return
 
     function onPointerDown(e: PointerEvent) {
       const t = e.target as Node | null
       if (!t) return
       if (pickerPanelRef.current?.contains(t)) return
       if (pickerButtonRef.current?.contains(t)) return
-      setEpisodePickerBvid(null)
+      setEpisodePickerSeriesId(null)
     }
 
     document.addEventListener('pointerdown', onPointerDown, true)
     return () => document.removeEventListener('pointerdown', onPointerDown, true)
-  }, [episodePickerBvid])
+  }, [episodePickerSeriesId])
 
   useEffect(() => {
     let canceled = false
@@ -217,11 +217,11 @@ export default function OnlineEmbedPage() {
     loadPresetSeries().then((s) => {
       if (canceled) return
       setSeries(s)
-      setSelectedBvid((prev) => prev ?? (s[0]?.bvid ?? null))
+      setSelectedSeriesId((prev) => prev ?? (s[0]?.id ?? null))
       setEpisodeByBvid((prev) => {
         const next = { ...prev }
         for (const item of s) {
-          if (next[item.bvid] == null) next[item.bvid] = 1
+          if (next[item.id] == null) next[item.id] = 1
         }
         return next
       })
@@ -236,9 +236,9 @@ export default function OnlineEmbedPage() {
   }, [episodeByBvid])
 
   useEffect(() => {
-    if (!selectedBvid) return
-    writeCookie(COOKIE_SELECTED, selectedBvid, 60 * 60 * 24 * 365)
-  }, [selectedBvid])
+    if (!selectedSeriesId) return
+    writeCookie(COOKIE_SELECTED, selectedSeriesId, 60 * 60 * 24 * 365)
+  }, [selectedSeriesId])
 
   const normalizedInput = useMemo(() => normalizeUrl(input), [input])
   const embed = useMemo(() => buildEmbed(normalizedInput), [normalizedInput])
@@ -260,16 +260,17 @@ export default function OnlineEmbedPage() {
     return Math.max(1, Math.min(max, p))
   }
 
-  function getEpisode(bvid: string): number {
-    return episodeByBvid[bvid] ?? 1
+  function getEpisode(seriesId: string): number {
+    return episodeByBvid[seriesId] ?? 1
   }
 
-  function setEpisode(bvid: string, page: number, pages: number) {
+  function setEpisode(seriesId: string, page: number, pages: number) {
     const nextPage = clampEpisode(page, pages)
-    setEpisodeByBvid((prev) => ({ ...prev, [bvid]: nextPage }))
+    setEpisodeByBvid((prev) => ({ ...prev, [seriesId]: nextPage }))
   }
 
   function buildBilibiliSeriesUrl(s: PresetSeries, page: number): string {
+    if (s.kind !== 'bilibili' || !s.bvid) return ''
     const p = Math.max(1, Math.floor(page))
     const cid = s.cids?.[p - 1]
     const aid = s.aid
@@ -286,7 +287,15 @@ export default function OnlineEmbedPage() {
   }
 
   function playSeriesEpisode(s: PresetSeries, page: number) {
-    setInput(buildBilibiliSeriesUrl(s, page))
+    if (s.kind === 'custom') {
+      const p = clampEpisode(page, s.pages)
+      const url = s.items?.[p - 1]?.url
+      if (url) setInput(url)
+      return
+    }
+
+    const url = buildBilibiliSeriesUrl(s, page)
+    if (url) setInput(url)
   }
 
   function scrollToPlayer() {
@@ -392,19 +401,19 @@ export default function OnlineEmbedPage() {
 
               <div className="mt-3 flex flex-col gap-2">
                 {series.map((s) => {
-                  const page = getEpisode(s.bvid)
+                  const page = getEpisode(s.id)
                   const padded = String(page).padStart(3, '0')
-                  const selected = selectedBvid === s.bvid
+                  const selected = selectedSeriesId === s.id
                   const pinyin = makePinyinTip(s.title)
-                  const pickerOpen = episodePickerBvid === s.bvid
+                  const pickerOpen = episodePickerSeriesId === s.id
                   return (
                     <div
-                      key={s.bvid}
+                      key={s.id}
                       role="button"
                       tabIndex={0}
-                      onClick={() => setSelectedBvid(s.bvid)}
+                      onClick={() => setSelectedSeriesId(s.id)}
                       onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') setSelectedBvid(s.bvid)
+                        if (e.key === 'Enter' || e.key === ' ') setSelectedSeriesId(s.id)
                       }}
                       className={[
                         'kid-focus kid-card flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:justify-between cursor-pointer',
@@ -428,8 +437,8 @@ export default function OnlineEmbedPage() {
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation()
-                            setSelectedBvid(s.bvid)
-                            setEpisode(s.bvid, page - 1, s.pages)
+                            setSelectedSeriesId(s.id)
+                            setEpisode(s.id, page - 1, s.pages)
                           }}
                           className="kid-focus kid-btn kid-btn-soft w-12 rounded-2xl text-lg font-extrabold text-gray-800"
                           aria-label="上一集"
@@ -443,8 +452,8 @@ export default function OnlineEmbedPage() {
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation()
-                              setSelectedBvid(s.bvid)
-                              setEpisodePickerBvid((cur) => (cur === s.bvid ? null : s.bvid))
+                              setSelectedSeriesId(s.id)
+                              setEpisodePickerSeriesId((cur) => (cur === s.id ? null : s.id))
                             }}
                             className="kid-focus kid-card kid-pill px-4 py-2 text-sm font-extrabold text-gray-800"
                             aria-label={`选择集数：当前第 ${padded} 集`}
@@ -465,7 +474,7 @@ export default function OnlineEmbedPage() {
                                 <button
                                   type="button"
                                   className="kid-focus kid-btn kid-btn-soft w-10 rounded-2xl text-lg font-extrabold text-gray-800"
-                                  onClick={() => setEpisodePickerBvid(null)}
+                                  onClick={() => setEpisodePickerSeriesId(null)}
                                   aria-label="关闭"
                                 >
                                   ×
@@ -489,8 +498,8 @@ export default function OnlineEmbedPage() {
                                           active ? 'bg-pink-50 text-pink-700' : 'text-gray-800',
                                         ].join(' ')}
                                         onClick={() => {
-                                          setEpisode(s.bvid, n, s.pages)
-                                          setEpisodePickerBvid(null)
+                                          setEpisode(s.id, n, s.pages)
+                                          setEpisodePickerSeriesId(null)
                                         }}
                                       >
                                         {String(n).padStart(3, '0')}
@@ -507,8 +516,8 @@ export default function OnlineEmbedPage() {
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation()
-                            setSelectedBvid(s.bvid)
-                            setEpisode(s.bvid, page + 1, s.pages)
+                            setSelectedSeriesId(s.id)
+                            setEpisode(s.id, page + 1, s.pages)
                           }}
                           className="kid-focus kid-btn kid-btn-soft w-12 rounded-2xl text-lg font-extrabold text-gray-800"
                           aria-label="下一集"
@@ -520,10 +529,10 @@ export default function OnlineEmbedPage() {
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation()
-                            const p = clampEpisode(getEpisode(s.bvid), s.pages)
-                            setSelectedBvid(s.bvid)
+                            const p = clampEpisode(getEpisode(s.id), s.pages)
+                            setSelectedSeriesId(s.id)
                             playSeriesEpisode(s, p)
-                            setNowPlaying({ kind: 'series', title: s.title, bvid: s.bvid, page: p, pages: s.pages })
+                            setNowPlaying({ kind: 'series', title: s.title, seriesId: s.id, page: p, pages: s.pages })
                             scrollToPlayer()
                           }}
                           className="kid-focus kid-btn kid-btn-primary rounded-2xl px-5 text-sm font-extrabold text-white"
@@ -627,8 +636,8 @@ export default function OnlineEmbedPage() {
                         type="button"
                           onClick={() => {
                             const prev = clampEpisode(nowPlaying.page - 1, nowPlaying.pages)
-                            setEpisode(nowPlaying.bvid, prev, nowPlaying.pages)
-                            const s = series.find((x) => x.bvid === nowPlaying.bvid)
+                            setEpisode(nowPlaying.seriesId, prev, nowPlaying.pages)
+                            const s = series.find((x) => x.id === nowPlaying.seriesId)
                             if (s) playSeriesEpisode(s, prev)
                             setNowPlaying({ ...nowPlaying, page: prev })
                             scrollToPlayer()
@@ -645,8 +654,8 @@ export default function OnlineEmbedPage() {
                         type="button"
                           onClick={() => {
                             const next = clampEpisode(nowPlaying.page + 1, nowPlaying.pages)
-                            setEpisode(nowPlaying.bvid, next, nowPlaying.pages)
-                            const s = series.find((x) => x.bvid === nowPlaying.bvid)
+                            setEpisode(nowPlaying.seriesId, next, nowPlaying.pages)
+                            const s = series.find((x) => x.id === nowPlaying.seriesId)
                             if (s) playSeriesEpisode(s, next)
                             setNowPlaying({ ...nowPlaying, page: next })
                             scrollToPlayer()
