@@ -121,6 +121,9 @@ function makePinyinTip(title: string): string | null {
   const normalized = title.replace(/\s+/g, '').toLowerCase()
   if (normalized.includes('奇妙萌可合集')) return 'qí miào méng kě hé jí'
   if (normalized.includes('奇妙萌可')) return 'qí miào méng kě'
+  if (normalized.includes('蜡笔小新第10季') || normalized.includes('蜡笔小新第十季')) return 'là bǐ xiǎo xīn dì shí jì'
+  if (normalized.includes('蜡笔小新第9季') || normalized.includes('蜡笔小新第九季')) return 'là bǐ xiǎo xīn dì jiǔ jì'
+  if (normalized.includes('蜡笔小新')) return 'là bǐ xiǎo xīn'
   if (normalized.includes('超级马里奥合集')) return 'chāo jí mǎ lǐ ào hé jí'
   if (normalized.includes('马里奥兄弟')) return 'mǎ lǐ ào xiōng dì'
   if (normalized.includes('超级马里奥')) return 'chāo jí mǎ lǐ ào'
