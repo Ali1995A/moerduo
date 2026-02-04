@@ -1,6 +1,7 @@
 export type PresetVideo = {
   title: string
   url: string
+  group?: string
 }
 
 export type PresetSeries = {
@@ -33,8 +34,13 @@ export async function loadPresetVideos(): Promise<PresetVideo[]> {
         if (!v || typeof v !== 'object') return null
         const title = (v as any).title
         const url = (v as any).url
+        const group = (v as any).group
         if (typeof title !== 'string' || typeof url !== 'string') return null
-        return { title, url } satisfies PresetVideo
+        return {
+          title,
+          url,
+          group: typeof group === 'string' && group.trim() ? group.trim() : undefined,
+        } satisfies PresetVideo
       })
       .filter(Boolean) as PresetVideo[]
     return list.length > 0 ? list : fallback

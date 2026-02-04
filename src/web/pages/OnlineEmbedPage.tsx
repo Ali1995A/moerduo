@@ -75,7 +75,18 @@ function getBilibiliEmbed(url: string): string | null {
   }
 }
 
-function buildEmbed(url: string): { provider: 'youtube' | 'bilibili'; embedUrl: string } | null {
+function getIqiyiEmbed(url: string): string | null {
+  try {
+    const u = new URL(url)
+    if (!u.hostname.endsWith('iqiyi.com')) return null
+    // iqiyi pages may block iframe embedding, but we still try; UI also provides "open original" button.
+    return u.toString()
+  } catch {
+    return null
+  }
+}
+
+function buildEmbed(url: string): { provider: 'youtube' | 'bilibili' | 'iqiyi'; embedUrl: string } | null {
   const yt = getYouTubeId(url)
   if (yt) {
     return {
@@ -87,6 +98,11 @@ function buildEmbed(url: string): { provider: 'youtube' | 'bilibili'; embedUrl: 
   const bilibiliEmbed = getBilibiliEmbed(url)
   if (bilibiliEmbed) {
     return { provider: 'bilibili', embedUrl: bilibiliEmbed }
+  }
+
+  const iqiyiEmbed = getIqiyiEmbed(url)
+  if (iqiyiEmbed) {
+    return { provider: 'iqiyi', embedUrl: iqiyiEmbed }
   }
 
   const bv = getBilibiliBvid(url)
@@ -103,6 +119,12 @@ function buildEmbed(url: string): { provider: 'youtube' | 'bilibili'; embedUrl: 
 function makePinyinTip(title: string): string | null {
   // Minimal built-in pinyin tips for the most common UI words.
   const normalized = title.replace(/\s+/g, '').toLowerCase()
+  if (normalized.includes('奇妙萌可合集')) return 'qí miào méng kě hé jí'
+  if (normalized.includes('奇妙萌可')) return 'qí miào méng kě'
+  if (normalized.includes('超级马里奥合集')) return 'chāo jí mǎ lǐ ào hé jí'
+  if (normalized.includes('马里奥兄弟')) return 'mǎ lǐ ào xiōng dì'
+  if (normalized.includes('超级马里奥')) return 'chāo jí mǎ lǐ ào'
+  if (normalized.includes('马里奥')) return 'mǎ lǐ ào'
   if (normalized.includes('数字积木第6季') || normalized.includes('数字积木第六季')) return 'shù zì jī mù dì liù jì'
   if (normalized.includes('数字积木第7季') || normalized.includes('数字积木第七季')) return 'shù zì jī mù dì qī jì'
   if (normalized.includes('数字积木第8季') || normalized.includes('数字积木第八季')) return 'shù zì jī mù dì bā jì'
@@ -133,19 +155,18 @@ function normalizePinyinForDisplay(input: string): string {
 
 export default function OnlineEmbedPage() {
   const [input, setInput] = useState('')
-  const [, setPresets] = useState<PresetVideo[]>([])
+  const [presets, setPresets] = useState<PresetVideo[]>([])
   const [series, setSeries] = useState<PresetSeries[]>([])
   const [episodeByBvid, setEpisodeByBvid] = useState<Record<string, number>>({})
   const [selectedBvid, setSelectedBvid] = useState<string | null>(null)
   const [episodePickerBvid, setEpisodePickerBvid] = useState<string | null>(null)
   const pickerPanelRef = useRef<HTMLDivElement | null>(null)
   const pickerButtonRef = useRef<HTMLButtonElement | null>(null)
-  const [nowPlaying, setNowPlaying] = useState<{
-    title: string
-    bvid: string
-    page: number
-    pages: number
-  } | null>(null)
+  const [nowPlaying, setNowPlaying] = useState<
+    | { kind: 'series'; title: string; bvid: string; page: number; pages: number }
+    | { kind: 'video'; title: string }
+    | null
+  >(null)
   const playerRef = useRef<HTMLDivElement | null>(null)
   const playerBoxRef = useRef<HTMLDivElement | null>(null)
   const [isTheater, setIsTheater] = useState(false)
@@ -221,6 +242,16 @@ export default function OnlineEmbedPage() {
 
   const normalizedInput = useMemo(() => normalizeUrl(input), [input])
   const embed = useMemo(() => buildEmbed(normalizedInput), [normalizedInput])
+  const presetGroups = useMemo(() => {
+    const groups = new Map<string, PresetVideo[]>()
+    for (const item of presets) {
+      const key = item.group?.trim() || '精选视频'
+      const list = groups.get(key) ?? []
+      list.push(item)
+      groups.set(key, list)
+    }
+    return Array.from(groups.entries()).map(([title, items]) => ({ title, items }))
+  }, [presets])
 
   function clampEpisode(page: number, pages: number): number {
     const max = Math.max(1, Math.floor(pages))
@@ -292,6 +323,68 @@ export default function OnlineEmbedPage() {
           <div className="kid-card p-4">
             <div className="text-sm font-extrabold text-gray-900">视频乐园</div>
             <div className="mt-1 text-xs font-semibold text-gray-600">点一个合集的“播放”，就能在右边看视频。</div>
+
+            {presets.length > 0 ? (
+              <div className="mt-4 kid-card p-4">
+                <div className="text-sm font-extrabold text-gray-900">精选视频</div>
+                <div className="mt-1 text-xs font-semibold text-gray-600">单集视频（B站/爱奇艺等）。</div>
+
+                <div className="mt-3 flex flex-col gap-4">
+                  {presetGroups.map((g) => {
+                    const groupPinyin = makePinyinTip(g.title)
+                    return (
+                      <div key={g.title}>
+                        <div className="flex items-center gap-2">
+                          <div className="text-sm font-extrabold text-gray-900">{g.title}</div>
+                          {groupPinyin ? (
+                            <span className="pinyin-text rounded-full bg-pink-50 px-2 py-0.5 text-xs font-bold text-pink-700">
+                              {normalizePinyinForDisplay(groupPinyin)}
+                            </span>
+                          ) : null}
+                        </div>
+
+                        <div className="mt-2 flex flex-col gap-2">
+                          {g.items.map((v) => {
+                            const pinyin = makePinyinTip(v.title)
+                            return (
+                              <div
+                                key={`${g.title}-${v.title}-${v.url}`}
+                                className="kid-card flex flex-col gap-2 p-3 sm:flex-row sm:items-center sm:justify-between"
+                              >
+                                <div className="min-w-0">
+                                  <div className="truncate text-sm font-extrabold text-gray-900">{v.title}</div>
+                                  {pinyin ? (
+                                    <div className="mt-0.5 text-xs font-semibold text-gray-500">
+                                      <span className="pinyin-text rounded-full bg-pink-50 px-2 py-0.5 font-bold text-pink-700">
+                                        {normalizePinyinForDisplay(pinyin)}
+                                      </span>
+                                    </div>
+                                  ) : null}
+                                </div>
+
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setInput(v.url)
+                                      setNowPlaying({ kind: 'video', title: v.title })
+                                      scrollToPlayer()
+                                    }}
+                                    className="kid-focus kid-btn kid-btn-primary rounded-2xl px-5 text-sm font-extrabold text-white"
+                                  >
+                                    播放
+                                  </button>
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            ) : null}
 
             <div className="mt-4 kid-card p-4">
               <div className="text-sm font-extrabold text-gray-900">视频合集</div>
@@ -430,7 +523,7 @@ export default function OnlineEmbedPage() {
                             const p = clampEpisode(getEpisode(s.bvid), s.pages)
                             setSelectedBvid(s.bvid)
                             playSeriesEpisode(s, p)
-                            setNowPlaying({ title: s.title, bvid: s.bvid, page: p, pages: s.pages })
+                            setNowPlaying({ kind: 'series', title: s.title, bvid: s.bvid, page: p, pages: s.pages })
                             scrollToPlayer()
                           }}
                           className="kid-focus kid-btn kid-btn-primary rounded-2xl px-5 text-sm font-extrabold text-white"
@@ -486,13 +579,23 @@ export default function OnlineEmbedPage() {
               </div>
             ) : !embed ? (
               <div className="rounded-2xl border border-dashed border-pink-100 bg-white/60 p-6 text-sm font-semibold text-gray-600">
-                这个链接我不认识～请确认是 YouTube 或 Bilibili 的分享链接。
+                这个链接我不认识～请确认是 YouTube / Bilibili / 爱奇艺 的分享链接。
               </div>
             ) : (
               <>
                 <div className="mb-3 flex items-center justify-between gap-2">
                   <div className="text-xs font-extrabold text-gray-700">{isTheater ? '大窗口播放' : '播放窗口'}</div>
                   <div className="flex items-center gap-2">
+                    {normalizedInput ? (
+                      <a
+                        href={normalizedInput}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="kid-focus kid-btn kid-btn-soft rounded-2xl px-4 text-sm font-extrabold text-gray-800"
+                      >
+                        打开原网页
+                      </a>
+                    ) : null}
                     <button
                       type="button"
                       onClick={() => setIsTheater((v) => !v)}
@@ -510,7 +613,7 @@ export default function OnlineEmbedPage() {
                   </div>
                 </div>
 
-                {nowPlaying ? (
+                {nowPlaying && nowPlaying.kind === 'series' ? (
                   <div className="mb-3 flex flex-col gap-2">
                     <div className="min-w-0">
                       <div className="truncate text-sm font-extrabold text-gray-900">{nowPlaying.title}</div>
@@ -557,6 +660,20 @@ export default function OnlineEmbedPage() {
                         </span>
                       </button>
                     </div>
+                  </div>
+                ) : nowPlaying && nowPlaying.kind === 'video' ? (
+                  <div className="mb-3 flex flex-col gap-1">
+                    <div className="truncate text-sm font-extrabold text-gray-900">{nowPlaying.title}</div>
+                    {(() => {
+                      const pinyin = makePinyinTip(nowPlaying.title)
+                      return pinyin ? (
+                        <div className="text-xs font-semibold text-gray-600">
+                          <span className="pinyin-text rounded-full bg-pink-50 px-2 py-0.5 font-bold text-pink-700">
+                            {normalizePinyinForDisplay(pinyin)}
+                          </span>
+                        </div>
+                      ) : null
+                    })()}
                   </div>
                 ) : null}
 
