@@ -36,6 +36,8 @@ function TopNav() {
               <Link
                 key={item.to}
                 to={item.to}
+                aria-label={item.label}
+                aria-current={active ? 'page' : undefined}
                 className={[
                   'kid-focus kid-btn kid-pill inline-flex items-center gap-2 px-4 py-2 text-sm font-extrabold transition-colors',
                   active ? 'bg-pink-100 text-pink-700' : 'bg-white/70 text-gray-700 hover:bg-white',

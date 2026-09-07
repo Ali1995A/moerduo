@@ -52,12 +52,13 @@ export async function loadPresetVideos(): Promise<PresetVideo[]> {
   }
 }
 
-export async function loadPresetSeries(): Promise<PresetSeries[]> {
+export async function loadPresetSeries(onFallback?: () => void): Promise<PresetSeries[]> {
+  const useFallback = () => { onFallback?.(); return fallbackSeries }
   try {
     const res = await fetch('/presets/bilibili-series.json', { cache: 'no-cache' })
-    if (!res.ok) return fallbackSeries
+    if (!res.ok) return useFallback()
     const json = (await res.json()) as unknown
-    if (!Array.isArray(json)) return fallbackSeries
+    if (!Array.isArray(json)) return useFallback()
     const list = json
       .map((v) => {
         if (!v || typeof v !== 'object') return null
@@ -83,8 +84,7 @@ export async function loadPresetSeries(): Promise<PresetSeries[]> {
             .filter(Boolean) as PresetSeriesItem[]
 
           if (items.length <= 0) return null
-          const parsedPages =
-            typeof pages === 'number' && Number.isFinite(pages) && pages > 0 ? Math.floor(pages) : items.length
+          const parsedPages = items.length
           const id =
             typeof rawId === 'string' && rawId.trim()
               ? rawId.trim()
@@ -103,15 +103,14 @@ export async function loadPresetSeries(): Promise<PresetSeries[]> {
 
         // Bilibili series: { title, bvid, pages, aid?, cids? }
         if (typeof rawBvid !== 'string' || typeof pages !== 'number') return null
-        if (!Number.isFinite(pages) || pages <= 0) return null
+        if (!Number.isSafeInteger(pages) || pages <= 0 || pages > 10000) return null
         const aid = (v as any).aid
         const cids = (v as any).cids
         const parsedAid = typeof aid === 'number' && Number.isFinite(aid) ? Math.floor(aid) : undefined
         const parsedCids = Array.isArray(cids)
           ? cids
               .map((n) => (typeof n === 'number' ? n : Number(n)))
-              .filter((n) => Number.isFinite(n) && n > 0)
-              .map((n) => Math.floor(n))
+              .map((n) => Number.isSafeInteger(n) && n > 0 ? n : 0)
           : undefined
 
         return {
@@ -125,8 +124,8 @@ export async function loadPresetSeries(): Promise<PresetSeries[]> {
         } satisfies PresetSeries
       })
       .filter(Boolean) as PresetSeries[]
-    return list.length > 0 ? list : fallbackSeries
+    return list.length > 0 ? list : useFallback()
   } catch {
-    return fallbackSeries
+    return useFallback()
   }
 }

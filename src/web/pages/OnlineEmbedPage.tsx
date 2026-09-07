@@ -4,7 +4,7 @@ import { loadPresetSeries, type PresetSeries } from '../online/presets'
 function readCookie(name: string): string | null {
   if (typeof document === 'undefined') return null
   const match = document.cookie.match(new RegExp(`(?:^|; )${name.replace(/[$()*+./?[\\\]^{|}-]/g, '\\\\$&')}=([^;]*)`))
-  return match ? decodeURIComponent(match[1]) : null
+  try { return match ? decodeURIComponent(match[1]) : null } catch { return null }
 }
 
 function writeCookie(name: string, value: string, maxAgeSeconds: number) {
@@ -35,7 +35,7 @@ function getYouTubeId(url: string): string | null {
   try {
     const u = new URL(url)
     if (u.hostname === 'youtu.be') return u.pathname.replace('/', '') || null
-    if (u.hostname.endsWith('youtube.com')) {
+    if (isProviderHost(u.hostname, 'youtube.com')) {
       const v = u.searchParams.get('v')
       if (v) return v
       const match = u.pathname.match(/\/shorts\/([^/]+)/) || u.pathname.match(/\/embed\/([^/]+)/)
@@ -50,7 +50,7 @@ function getYouTubeId(url: string): string | null {
 function getBilibiliBvid(url: string): string | null {
   try {
     const u = new URL(url)
-    if (!u.hostname.endsWith('bilibili.com')) return null
+    if (!isProviderHost(u.hostname, 'bilibili.com')) return null
     const match = u.pathname.match(/\/video\/(BV[0-9A-Za-z]+)/)
     return match?.[1] ?? null
   } catch {
@@ -78,7 +78,7 @@ function getBilibiliEmbed(url: string): string | null {
 function getIqiyiEmbed(url: string): string | null {
   try {
     const u = new URL(url)
-    if (!u.hostname.endsWith('iqiyi.com')) return null
+    if (!isProviderHost(u.hostname, 'iqiyi.com')) return null
     // iqiyi pages may block iframe embedding, but we still try; UI also provides "open original" button.
     return u.toString()
   } catch {
@@ -86,7 +86,15 @@ function getIqiyiEmbed(url: string): string | null {
   }
 }
 
-function buildEmbed(url: string): { provider: 'youtube' | 'bilibili' | 'iqiyi'; embedUrl: string } | null {
+function isProviderHost(host: string, domain: string): boolean {
+  return host === domain || host.endsWith(`.${domain}`)
+}
+
+export function buildEmbed(url: string): { provider: 'youtube' | 'bilibili' | 'iqiyi'; embedUrl: string } | null {
+  try {
+    const parsed = new URL(url)
+    if (!['https:', 'http:'].includes(parsed.protocol) || parsed.username || parsed.password) return null
+  } catch { return null }
   const yt = getYouTubeId(url)
   if (yt) {
     return {
@@ -109,7 +117,7 @@ function buildEmbed(url: string): { provider: 'youtube' | 'bilibili' | 'iqiyi'; 
   if (bv) {
     return {
       provider: 'bilibili',
-      embedUrl: `https://player.bilibili.com/player.html?bvid=${encodeURIComponent(bv)}&p=1&high_quality=1&danmaku=0&autoplay=0&isOutside=true`,
+      embedUrl: `https://player.bilibili.com/player.html?bvid=${encodeURIComponent(bv)}&p=${Math.max(1, Math.floor(Number(new URL(url).searchParams.get('p')) || 1))}&high_quality=1&danmaku=0&autoplay=0&isOutside=true`,
     }
   }
 
@@ -166,6 +174,10 @@ function normalizePinyinForDisplay(input: string): string {
 
 export default function OnlineEmbedPage() {
   const [input, setInput] = useState('')
+  const [query, setQuery] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [usingFallback, setUsingFallback] = useState(false)
+  const [reloadKey, setReloadKey] = useState(0)
   const [series, setSeries] = useState<PresetSeries[]>([])
   const [episodeByBvid, setEpisodeByBvid] = useState<Record<string, number>>({})
   const [selectedSeriesId, setSelectedSeriesId] = useState<string | null>(null)
@@ -180,6 +192,35 @@ export default function OnlineEmbedPage() {
   const playerRef = useRef<HTMLDivElement | null>(null)
   const playerBoxRef = useRef<HTMLDivElement | null>(null)
   const [isTheater, setIsTheater] = useState(false)
+
+  useEffect(() => {
+    if (!episodePickerSeriesId) return
+    const trigger = pickerButtonRef.current
+    pickerPanelRef.current?.querySelector<HTMLButtonElement>('[aria-pressed="true"]')?.focus()
+    const closeOutside = (event: PointerEvent) => {
+      if (!pickerPanelRef.current?.contains(event.target as Node) && !trigger?.contains(event.target as Node)) {
+        setEpisodePickerSeriesId(null)
+      }
+    }
+    const closeEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') { setEpisodePickerSeriesId(null); trigger?.focus() }
+    }
+    document.addEventListener('pointerdown', closeOutside)
+    document.addEventListener('keydown', closeEscape)
+    return () => {
+      document.removeEventListener('pointerdown', closeOutside)
+      document.removeEventListener('keydown', closeEscape)
+    }
+  }, [episodePickerSeriesId])
+
+  useEffect(() => {
+    if (!isTheater) return
+    const previous = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    const exit = (event: KeyboardEvent) => { if (event.key === 'Escape') setIsTheater(false) }
+    document.addEventListener('keydown', exit)
+    return () => { document.body.style.overflow = previous; document.removeEventListener('keydown', exit) }
+  }, [isTheater])
 
   useEffect(() => {
     const rawEpisodes = readCookie(COOKIE_EPISODES)
@@ -204,30 +245,18 @@ export default function OnlineEmbedPage() {
   }, [])
 
   useEffect(() => {
-    if (!episodePickerSeriesId) return
-
-    function onPointerDown(e: PointerEvent) {
-      const t = e.target as Node | null
-      if (!t) return
-      if (pickerPanelRef.current?.contains(t)) return
-      if (pickerButtonRef.current?.contains(t)) return
-      setEpisodePickerSeriesId(null)
-    }
-
-    document.addEventListener('pointerdown', onPointerDown, true)
-    return () => document.removeEventListener('pointerdown', onPointerDown, true)
-  }, [episodePickerSeriesId])
-
-  useEffect(() => {
     let canceled = false
-    loadPresetSeries().then((s) => {
+    setLoading(true)
+    setUsingFallback(false)
+    loadPresetSeries(() => { if (!canceled) setUsingFallback(true) }).then((s) => {
       if (canceled) return
+      setLoading(false)
       setSeries(s)
-      setSelectedSeriesId((prev) => prev ?? (s[0]?.id ?? null))
+      setSelectedSeriesId((prev) => s.some((item) => item.id === prev) ? prev : (s[0]?.id ?? null))
       setEpisodeByBvid((prev) => {
         const next = { ...prev }
         for (const item of s) {
-          if (next[item.id] == null) next[item.id] = 1
+          next[item.id] = clampEpisode(next[item.id] ?? 1, item.pages)
         }
         return next
       })
@@ -235,7 +264,7 @@ export default function OnlineEmbedPage() {
     return () => {
       canceled = true
     }
-  }, [])
+  }, [reloadKey])
 
   useEffect(() => {
     writeCookie(COOKIE_EPISODES, JSON.stringify(episodeByBvid), 60 * 60 * 24 * 365)
@@ -302,7 +331,7 @@ export default function OnlineEmbedPage() {
     })
   }
 
-  function requestPlayerFullscreen() {
+  async function requestPlayerFullscreen() {
     const el = playerBoxRef.current
     if (!el) return
     const anyEl = el as any
@@ -314,11 +343,11 @@ export default function OnlineEmbedPage() {
       anyEl.msRequestFullscreen
     if (typeof req === 'function') {
       try {
-        req.call(el)
+        await req.call(el)
       } catch {
-        // ignore
+        setIsTheater(true)
       }
-    }
+    } else setIsTheater(true)
   }
 
   return (
@@ -332,9 +361,20 @@ export default function OnlineEmbedPage() {
             <div className="mt-4 kid-card p-4">
               <div className="text-sm font-extrabold text-gray-900">视频合集</div>
               <div className="mt-1 text-xs font-semibold text-gray-600">每个合集一行：选第几集，然后点“播放”。</div>
+              <input
+                type="search"
+                aria-label="搜索视频合集"
+                placeholder="搜索喜欢的合集…"
+                value={query}
+                onChange={(event) => { setQuery(event.target.value); setEpisodePickerSeriesId(null) }}
+                className="kid-focus mt-3 h-12 w-full rounded-2xl border border-pink-100 bg-white px-4 text-sm"
+              />
+              {loading && <p role="status" className="mt-3 text-sm text-gray-600">正在加载合集…</p>}
+              {usingFallback && <div role="status" className="mt-3 text-sm text-amber-800">合集暂时加载失败，已显示备用内容。<button type="button" onClick={() => setReloadKey((key) => key + 1)} className="kid-focus ml-2 underline">重试</button></div>}
+              {!loading && !series.some((s) => s.title.toLowerCase().includes(query.trim().toLowerCase())) && <p role="status" className="mt-3 text-sm text-gray-600">没有找到这个合集，换个关键词试试。</p>}
 
               <div className="mt-3 flex flex-col gap-2">
-                {series.map((s) => {
+                {series.filter((s) => s.title.toLowerCase().includes(query.trim().toLowerCase())).map((s) => {
                   const page = getEpisode(s.id)
                   const padded = String(page).padStart(3, '0')
                   const selected = selectedSeriesId === s.id
@@ -343,12 +383,7 @@ export default function OnlineEmbedPage() {
                   return (
                     <div
                       key={s.id}
-                      role="button"
-                      tabIndex={0}
                       onClick={() => setSelectedSeriesId(s.id)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') setSelectedSeriesId(s.id)
-                      }}
                       className={[
                         'kid-focus kid-card flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:justify-between cursor-pointer',
                         selected ? 'bg-pink-50' : '',
@@ -376,6 +411,7 @@ export default function OnlineEmbedPage() {
                           }}
                           className="kid-focus kid-btn kid-btn-soft w-12 rounded-2xl text-lg font-extrabold text-gray-800"
                           aria-label="上一集"
+                          disabled={page <= 1}
                         >
                           −
                         </button>
@@ -391,6 +427,8 @@ export default function OnlineEmbedPage() {
                             }}
                             className="kid-focus kid-card kid-pill px-4 py-2 text-sm font-extrabold text-gray-800"
                             aria-label={`选择集数：当前第 ${padded} 集`}
+                            aria-expanded={pickerOpen}
+                            aria-haspopup="dialog"
                           >
                             第 {padded} 集
                           </button>
@@ -426,6 +464,7 @@ export default function OnlineEmbedPage() {
                                     return (
                                       <button
                                         key={n}
+                                        aria-pressed={active}
                                         type="button"
                                         className={[
                                           'kid-focus kid-btn kid-btn-soft w-full rounded-2xl px-0 py-2 text-sm font-extrabold',
@@ -434,6 +473,7 @@ export default function OnlineEmbedPage() {
                                         onClick={() => {
                                           setEpisode(s.id, n, s.pages)
                                           setEpisodePickerSeriesId(null)
+                                          pickerButtonRef.current?.focus()
                                         }}
                                       >
                                         {String(n).padStart(3, '0')}
@@ -455,6 +495,7 @@ export default function OnlineEmbedPage() {
                           }}
                           className="kid-focus kid-btn kid-btn-soft w-12 rounded-2xl text-lg font-extrabold text-gray-800"
                           aria-label="下一集"
+                          disabled={page >= s.pages}
                         >
                           +
                         </button>
@@ -491,6 +532,7 @@ export default function OnlineEmbedPage() {
                     setNowPlaying(null)
                   }}
                   placeholder="粘贴链接"
+                  aria-label="视频分享链接或嵌入代码"
                   className="kid-focus h-12 w-full rounded-3xl border border-pink-100 bg-white/80 px-4 text-sm font-semibold outline-none placeholder:text-gray-400 focus:ring-2 focus:ring-pink-100"
                   inputMode="url"
                 />

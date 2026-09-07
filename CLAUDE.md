@@ -1,5 +1,16 @@
 # CLAUDE.md
 
+## Current handoff — 2026-09-07
+
+- Mode: `software_app`; compatible: `data_automation`; see `project_mode.json`. Parent/child relationship: not applicable.
+- Status: default Web video page review and incremental upgrade implemented; build and targeted regressions passed.
+- Recommended version: current source and its `dist/` build. User authorized test and push on 2026-09-07; see the verification supplement in `docs/WEB_REVIEW_20260907.md`. `dist-package/` is an existing package, not refreshed or recommended by this task.
+- Read first: `docs/WEB_REVIEW_20260907.md`, then `docs/LOCAL_DEV_GUIDE.md`, then `src/web/pages/OnlineEmbedPage.tsx` and `src/web/online/presets.ts`.
+- Completed: search, preset fallback/retry, episode alignment and bounds, URL host/protocol validation, keyboard picker handling, fullscreen fallback, navigation labels.
+- Next exact checks: run `node scripts/web-regression.cjs` and `npm run build:web` after further changes; manually verify third-party playback and iPad/Safari fullscreen. Do not reinstall existing dependencies.
+- Keep software-native `docs/` and `scripts/`; dated review reports describe scope and verification. Preserve pre-existing untracked `LOCAL.md`, developer guide, and cleanup scripts.
+- Office checks: not applicable. Update log: this section added for the 2026-09-07 Web review.
+
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Project Overview

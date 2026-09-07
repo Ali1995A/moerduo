@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "project_name": "moerduo",
+  "project_mode": "software_app",
+  "mode_reason": "Existing Tauri and React application; this task improves the default web page.",
+  "created_at": "2026-09-07",
+  "created_by": "Codex",
+  "template_source": "Existing CLAUDE.md and docs/LOCAL_DEV_GUIDE.md",
+  "can_switch_mode": true,
+  "compatible_modes": ["data_automation"],
+  "notes": "Preserve existing repository layout. No parent-child workspace relationship applies."
+}
